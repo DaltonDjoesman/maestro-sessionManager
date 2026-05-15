@@ -1,8 +1,8 @@
 ## 1. Project scaffold
 
-- [ ] 1.1 Initialise Tauri + Rust project in repo (src-tauri, frontend shell) with chosen UI framework
-- [ ] 1.2 Add core dependencies: serde/serde_json, tokio (if async process), sysinfo (or chosen Linux process crate)
-- [ ] 1.3 Define Rust modules: `platform` (Linux adapter trait), `profiles`, `settings`, `activation`, `browser`, `cleanup`
+- [x] 1.1 Initialise Tauri + Rust project in repo (src-tauri, frontend shell) with chosen UI framework
+- [x] 1.2 Add core dependencies: serde/serde_json, tokio (if async process), sysinfo (or chosen Linux process crate)
+- [x] 1.3 Define Rust modules: `platform` (Linux adapter trait), `profiles`, `settings`, `activation`, `browser`, `cleanup`
 
 ## 2. Application settings
 

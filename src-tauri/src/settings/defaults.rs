@@ -5,7 +5,7 @@ use super::model::{
 };
 use super::SettingsError;
 
-const APP_DIR_NAME: &str = "maestro";
+pub(crate) const APP_DIR_NAME: &str = "maestro";
 const PROFILES_DIR_NAME: &str = "profiles";
 
 /// Per-user Maestro data directory (`$XDG_DATA_HOME/maestro` or `~/.local/share/maestro`).

@@ -1,7 +1,9 @@
 //! Non-blocking process launches from profile-style entries (`process-launcher` spec).
 
+mod sequence;
 mod spawn;
 
+pub use sequence::spawn_ordered_with_delay_after_success;
 pub use spawn::{spawn_launch_spec, LaunchSpec, SpawnOutcome};
 
 use std::path::PathBuf;

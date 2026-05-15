@@ -99,6 +99,7 @@ mod tests {
     fn temp_store() -> SettingsStore {
         let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!("maestro-settings-test-{n}.json"));
+        let _ = fs::remove_file(&path);
         SettingsStore::new(path)
     }
 

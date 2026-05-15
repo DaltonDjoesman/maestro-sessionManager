@@ -23,7 +23,21 @@ fn platform_name() -> String {
 
 #[tauri::command]
 fn get_settings(manager: tauri::State<'_, SettingsManager>) -> ApplicationSettings {
-    manager.settings.clone()
+    manager.get()
+}
+
+#[tauri::command]
+fn validate_profiles_root(path: String) -> Result<(), String> {
+    settings::validate_profiles_root_path(std::path::Path::new(path.trim()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_settings(
+    settings: ApplicationSettings,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<ApplicationSettings, String> {
+    manager.update_and_save(settings).map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -37,7 +51,13 @@ pub fn run() {
             app.manage(manager);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, platform_name, get_settings])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            platform_name,
+            get_settings,
+            validate_profiles_root,
+            save_settings,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

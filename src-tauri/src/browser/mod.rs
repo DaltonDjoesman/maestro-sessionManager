@@ -2,7 +2,9 @@
 
 mod build;
 
-pub use build::{build_chromium_like_command, BuiltBrowserCommand};
+pub use build::{
+    build_browser_launch, build_chromium_like_command, build_firefox_command, BuiltBrowserCommand,
+};
 
 use thiserror::Error;
 

@@ -27,7 +27,7 @@
 
 - [x] 5.1 Implement command builder for `chromium-like` (`--new-window`, optional `--user-data-dir`, trailing URLs)
 - [x] 5.2 Implement command builder for `firefox` (`-new-window`, profile, optional `-no-remote`, trailing URLs)
-- [ ] 5.3 Emit warnings when isolation fields empty (Chromium) or when `file://` URLs fail; keep HTTPS success path
+- [x] 5.3 Emit warnings when isolation fields empty (Chromium) or when `file://` URLs fail; keep HTTPS success path
 
 ## 6. Session activation
 

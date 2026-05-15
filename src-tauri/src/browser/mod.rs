@@ -1,4 +1,7 @@
 //! Browser argv builders for Chromium-like and Firefox families (`browser-launch` spec).
+//!
+//! Use [`build_browser_launch`] for activation: argv preserves HTTPS and `file://` URLs while
+//! [`BuiltBrowserCommand::warnings`] collects isolation and sandbox hints for the summary (task 5.3).
 
 mod build;
 

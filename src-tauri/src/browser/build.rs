@@ -20,17 +20,54 @@ impl BuiltBrowserCommand {
     }
 }
 
-/// Dispatch by [`BrowserFamily`] for session activation.
+/// Dispatch by [`BrowserFamily`] for session activation (includes isolation/`file://` warnings).
 pub fn build_browser_launch(block: &ProfileBrowserBlock) -> Result<BuiltBrowserCommand, BrowserError> {
-    let (program, args) = match block.family {
-        BrowserFamily::ChromiumLike => chromium_argv(block)?,
-        BrowserFamily::Firefox => firefox_argv(block)?,
-    };
-    Ok(BuiltBrowserCommand {
-        program,
-        args,
-        warnings: vec![],
-    })
+    match block.family {
+        BrowserFamily::ChromiumLike => build_chromium_like_command(block),
+        BrowserFamily::Firefox => build_firefox_command(block),
+    }
+}
+
+fn collect_browser_warnings(block: &ProfileBrowserBlock) -> Vec<String> {
+    let mut w = Vec::new();
+    match block.family {
+        BrowserFamily::ChromiumLike => {
+            if block
+                .user_data_dir
+                .as_ref()
+                .map(|s| s.trim().is_empty())
+                .unwrap_or(true)
+            {
+                w.push(
+                    "Chromium: user-data-dir is empty; tabs may merge with an existing personal browser instance."
+                        .into(),
+                );
+            }
+        }
+        BrowserFamily::Firefox => {
+            if block
+                .firefox_profile
+                .as_ref()
+                .map(|s| s.trim().is_empty())
+                .unwrap_or(true)
+            {
+                w.push(
+                    "Firefox: no dedicated profile configured; session may attach to an existing Firefox instance."
+                        .into(),
+                );
+            }
+        }
+    }
+    for url in &block.urls {
+        let t = url.trim();
+        let lower = t.to_ascii_lowercase();
+        if lower.starts_with("file://") {
+            w.push(format!(
+                "file:// URL may be blocked by browser or OS sandbox policies: {url}"
+            ));
+        }
+    }
+    w
 }
 
 fn chromium_argv(block: &ProfileBrowserBlock) -> Result<(String, Vec<String>), BrowserError> {
@@ -68,7 +105,7 @@ pub fn build_chromium_like_command(
     Ok(BuiltBrowserCommand {
         program,
         args,
-        warnings: vec![],
+        warnings: collect_browser_warnings(block),
     })
 }
 
@@ -111,7 +148,7 @@ pub fn build_firefox_command(
     Ok(BuiltBrowserCommand {
         program,
         args,
-        warnings: vec![],
+        warnings: collect_browser_warnings(block),
     })
 }
 
@@ -153,6 +190,7 @@ mod chromium_tests {
                 "https://b.example".to_string(),
             ]
         );
+        assert!(cmd.warnings.is_empty());
     }
 
     #[test]
@@ -163,6 +201,11 @@ mod chromium_tests {
             cmd.args,
             vec!["--new-window".to_string(), "https://x".to_string(),]
         );
+        assert!(
+            cmd.warnings.iter().any(|m| m.contains("user-data-dir")),
+            "{:?}",
+            cmd.warnings
+        );
     }
 
     #[test]
@@ -172,6 +215,11 @@ mod chromium_tests {
         assert_eq!(cmd.program, "chrome");
         assert!(cmd.args[0] == "--new-window");
         assert_eq!(cmd.args[cmd.args.len() - 1], "https://z");
+        assert!(
+            cmd.warnings.iter().any(|w| w.contains("user-data-dir")),
+            "{:?}",
+            cmd.warnings
+        );
     }
 }
 
@@ -227,6 +275,11 @@ mod firefox_tests {
             cmd.args,
             vec!["-new-window".to_string(), "https://only".to_string()]
         );
+        assert!(
+            cmd.warnings.iter().any(|w| w.contains("dedicated profile")),
+            "{:?}",
+            cmd.warnings
+        );
     }
 
     #[test]
@@ -234,6 +287,11 @@ mod firefox_tests {
         let b = ff_block("firefox", Some("  "), Some(false), vec![]);
         let cmd = build_firefox_command(&b).unwrap();
         assert_eq!(cmd.args, vec!["-new-window".to_string()]);
+        assert!(
+            cmd.warnings.iter().any(|w| w.contains("dedicated profile")),
+            "{:?}",
+            cmd.warnings
+        );
     }
 
     #[test]
@@ -242,5 +300,76 @@ mod firefox_tests {
         let cmd = build_browser_launch(&b).unwrap();
         assert!(cmd.args.contains(&"-P".to_string()));
         assert!(cmd.args.ends_with(&["https://x".to_string()]));
+        assert!(cmd.warnings.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod warning_tests {
+    use super::*;
+    use crate::profiles::ProfileBrowserBlock;
+
+    #[test]
+    fn chromium_with_user_data_has_no_isolation_warning() {
+        let b = ProfileBrowserBlock {
+            family: BrowserFamily::ChromiumLike,
+            executable: "chromium".into(),
+            user_data_dir: Some("/tmp/maestro-iso".into()),
+            firefox_profile: None,
+            firefox_no_remote: None,
+            urls: vec!["https://safe.example".into()],
+        };
+        let cmd = build_browser_launch(&b).unwrap();
+        assert!(
+            !cmd
+                .warnings
+                .iter()
+                .any(|w| w.contains("user-data-dir is empty"))
+        );
+    }
+
+    #[test]
+    fn firefox_without_profile_warns() {
+        let b = ProfileBrowserBlock {
+            family: BrowserFamily::Firefox,
+            executable: "firefox".into(),
+            user_data_dir: None,
+            firefox_profile: None,
+            firefox_no_remote: None,
+            urls: vec![],
+        };
+        let cmd = build_firefox_command(&b).unwrap();
+        assert!(
+            cmd.warnings.iter().any(|w| w.contains("dedicated profile")),
+            "{:?}",
+            cmd.warnings
+        );
+    }
+
+    #[test]
+    fn file_urls_emit_sandbox_warnings_but_keep_https_launch_argv() {
+        let b = ProfileBrowserBlock {
+            family: BrowserFamily::ChromiumLike,
+            executable: "chromium".into(),
+            user_data_dir: Some("/data".into()),
+            firefox_profile: None,
+            firefox_no_remote: None,
+            urls: vec![
+                "https://ok.example".into(),
+                "FILE:///tmp/x.txt".into(),
+            ],
+        };
+        let cmd = build_browser_launch(&b).unwrap();
+        assert!(
+            cmd.warnings
+                .iter()
+                .any(|w| w.contains("file:// URL may be blocked")),
+            "{:?}",
+            cmd.warnings
+        );
+        assert!(cmd.args.ends_with(&[
+            "https://ok.example".to_string(),
+            "FILE:///tmp/x.txt".to_string(),
+        ]));
     }
 }

@@ -21,7 +21,7 @@
 
 - [x] 4.1 Implement spawn helper: executable resolution, args, optional cwd, non-blocking error capture
 - [x] 4.2 Implement ordered launch with configurable inter-spawn delay
-- [ ] 4.3 Map spawn results into activation summary entries (success/failure)
+- [x] 4.3 Map spawn results into activation summary entries (success/failure)
 
 ## 5. Browser launch
 

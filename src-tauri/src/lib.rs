@@ -5,7 +5,7 @@ mod platform;
 mod profiles;
 mod settings;
 
-use platform::LinuxPlatform;
+use platform::{LinuxPlatform, PlatformContext};
 
 #[tauri::command]
 fn greet(name: &str) -> String {

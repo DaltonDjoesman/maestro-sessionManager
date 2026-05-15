@@ -2,6 +2,7 @@ mod activation;
 mod browser;
 mod cleanup;
 mod platform;
+mod process_launcher;
 mod profiles;
 mod settings;
 

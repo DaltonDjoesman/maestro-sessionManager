@@ -5,7 +5,9 @@ mod platform;
 mod profiles;
 mod settings;
 
-use platform::LinuxPlatform;
+use platform::{LinuxPlatform, PlatformContext};
+use settings::{ApplicationSettings, SettingsManager};
+use tauri::Manager;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -19,11 +21,43 @@ fn platform_name() -> String {
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
+#[tauri::command]
+fn get_settings(manager: tauri::State<'_, SettingsManager>) -> ApplicationSettings {
+    manager.get()
+}
+
+#[tauri::command]
+fn validate_profiles_root(path: String) -> Result<(), String> {
+    settings::validate_profiles_root_path(std::path::Path::new(path.trim()))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_settings(
+    settings: ApplicationSettings,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<ApplicationSettings, String> {
+    manager.update_and_save(settings).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, platform_name])
+        .setup(|app| {
+            let manager = SettingsManager::open_default().map_err(|e| {
+                Box::new(e) as Box<dyn std::error::Error>
+            })?;
+            app.manage(manager);
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            platform_name,
+            get_settings,
+            validate_profiles_root,
+            save_settings,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

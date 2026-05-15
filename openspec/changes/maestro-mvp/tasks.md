@@ -6,9 +6,9 @@
 
 ## 2. Application settings
 
-- [ ] 2.1 Implement global settings model with `schema_version` and default per-user data paths
-- [ ] 2.2 Persist settings to disk; load on startup per application-settings spec
-- [ ] 2.3 Build settings UI with validation for profiles root (exists, directory, writable)
+- [x] 2.1 Implement global settings model with `schema_version` and default per-user data paths
+- [x] 2.2 Persist settings to disk; load on startup per application-settings spec
+- [x] 2.3 Build settings UI with validation for profiles root (exists, directory, writable)
 
 ## 3. Session profiles
 

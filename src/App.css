@@ -32,6 +32,13 @@ body {
   color: #9aa0a6;
 }
 
+.row-between {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .status-card {
   margin-top: 2rem;
   padding: 1.25rem 1.5rem;
@@ -44,4 +51,105 @@ body {
   margin: 0.75rem 0 0;
   font-size: 0.9rem;
   color: #9aa0a6;
+}
+
+.btn-primary,
+.btn-secondary {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: #5b8def;
+  color: #0d1117;
+  font-weight: 600;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #e8eaed;
+  border-color: #2d3340;
+}
+
+.btn-secondary:hover {
+  border-color: #5b8def;
+}
+
+.settings-form {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.settings-form fieldset {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #2d3340;
+  background: #1e222b;
+}
+
+.settings-form legend {
+  padding: 0 0.25rem;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.field:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.field span {
+  font-size: 0.9rem;
+  color: #9aa0a6;
+}
+
+.field input,
+.field select {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #2d3340;
+  background: #12141a;
+  color: #e8eaed;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: #e57373;
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #e57373;
+}
+
+.form-error {
+  margin: 0;
+  color: #e57373;
+}
+
+.form-success {
+  margin: 0;
+  color: #81c784;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
 }

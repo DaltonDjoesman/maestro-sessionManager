@@ -1,9 +1,34 @@
-//! Session profile JSON: load, validate, CRUD (implemented in task 3).
+//! Session profiles on disk: JSON schema, catalog listing, CRUD, atomic saves.
+
+mod model;
+mod service;
+
+pub use model::{
+    ApplicationLaunchEntry, ProfileBrowserBlock, ProfileCleanupRules, SessionProfile,
+    CURRENT_PROFILE_SCHEMA_VERSION, SUPPORTED_PROFILE_SCHEMA_VERSION,
+};
+pub use service::{
+    CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,
+};
 
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ProfileError {
-    #[error("profile error: {0}")]
-    Message(String),
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("invalid profile JSON at {path}: {message}")]
+    InvalidJson { path: String, message: String },
+    #[error("profile {path}: unsupported schema_version {found} (supported up to {supported})")]
+    UnsupportedSchema {
+        path: String,
+        found: u32,
+        supported: u32,
+    },
+    #[error("profile {path}: {message}")]
+    Validation { path: String, message: String },
+    #[error("path outside profiles root")]
+    PathOutsideRoot,
+    #[error("{0}")]
+    RootUnavailable(String),
 }

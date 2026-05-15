@@ -6,6 +6,10 @@ mod profiles;
 mod settings;
 
 use platform::{LinuxPlatform, PlatformContext};
+use profiles::{
+    CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,
+    SessionProfile,
+};
 use settings::{ApplicationSettings, SettingsManager};
 use tauri::Manager;
 
@@ -40,6 +44,67 @@ fn save_settings(
     manager.update_and_save(settings).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn list_session_profiles(
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<Vec<ProfileCatalogEntry>, String> {
+    let dir = ProfileDirectory::new(manager.get().profiles_root_path());
+    let out = dir.catalog().map_err(|e| e.to_string())?;
+    let _ = manager.persist_if_absent();
+    Ok(out)
+}
+
+#[tauri::command]
+fn load_session_profile(
+    path: String,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<SessionProfile, String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .load_file(&path)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_session_profile(
+    path: String,
+    profile: SessionProfile,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<(), String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .save_file(&path, &profile)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn create_session_profile(
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<CreateProfileResult, String> {
+    let dir = ProfileDirectory::new(manager.get().profiles_root_path());
+    let out = dir.create_profile().map_err(|e| e.to_string())?;
+    let _ = manager.persist_if_absent();
+    Ok(out)
+}
+
+#[tauri::command]
+fn delete_session_profile(
+    path: String,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<(), String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .delete_file(&path)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn duplicate_session_profile(
+    path: String,
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<DuplicateProfileResult, String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .duplicate_file(&path)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -57,6 +122,12 @@ pub fn run() {
             get_settings,
             validate_profiles_root,
             save_settings,
+            list_session_profiles,
+            load_session_profile,
+            save_session_profile,
+            create_session_profile,
+            delete_session_profile,
+            duplicate_session_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

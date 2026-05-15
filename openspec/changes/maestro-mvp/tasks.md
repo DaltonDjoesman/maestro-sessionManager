@@ -12,10 +12,10 @@
 
 ## 3. Session profiles
 
-- [ ] 3.1 Define Rust types matching session-profiles JSON (applications array, browser block, optional cleanup rules)
-- [ ] 3.2 Implement profile discovery and catalog listing from configured directory
-- [ ] 3.3 Implement CRUD + duplicate with atomic write (temp + rename) where practical
-- [ ] 3.4 Validate on load; surface errors for invalid JSON or unsupported `schema_version`
+- [x] 3.1 Define Rust types matching session-profiles JSON (applications array, browser block, optional cleanup rules)
+- [x] 3.2 Implement profile discovery and catalog listing from configured directory
+- [x] 3.3 Implement CRUD + duplicate with atomic write (temp + rename) where practical
+- [x] 3.4 Validate on load; surface errors for invalid JSON or unsupported `schema_version`
 
 ## 4. Process launcher
 

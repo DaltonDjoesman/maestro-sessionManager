@@ -1,4 +1,8 @@
-//! Browser command-line builders for Chromium-like and Firefox families (task 5).
+//! Browser argv builders for Chromium-like and Firefox families (`browser-launch` spec).
+
+mod build;
+
+pub use build::{build_chromium_like_command, BuiltBrowserCommand};
 
 use thiserror::Error;
 

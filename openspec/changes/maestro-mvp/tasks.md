@@ -31,22 +31,22 @@
 
 ## 6. Session activation
 
-- [ ] 6.1 Implement validate-profile pipeline before any spawn
-- [ ] 6.2 Orchestrate browser step then application steps (or documented order); return structured summary to UI
-- [ ] 6.3 Optionally implement skip-if-already-running policy and reflect as `skipped` in summary
+- [x] 6.1 Implement validate-profile pipeline before any spawn
+- [x] 6.2 Orchestrate browser step then application steps (or documented order); return structured summary to UI
+- [x] 6.3 Optionally implement skip-if-already-running policy and reflect as `skipped` in summary
 
 ## 7. Context cleanup (Linux)
 
-- [ ] 7.1 Implement Linux process enumeration behind platform adapter with denylist for system processes
-- [ ] 7.2 Implement divergence computation vs profile-allowed executables
-- [ ] 7.3 Build confirmation UI; send SIGTERM on confirm; optional timeout + SIGKILL only with explicit opt-in
+- [x] 7.1 Implement Linux process enumeration behind platform adapter with denylist for system processes
+- [x] 7.2 Implement divergence computation vs profile-allowed executables
+- [x] 7.3 Build confirmation UI; send SIGTERM on confirm; optional timeout + SIGKILL only with explicit opt-in
 
 ## 8. UI integration
 
 - [ ] 8.1 Session catalog view: list, create, edit, duplicate, delete profiles
 - [ ] 8.2 Profile editor: applications table, browser block (family, executable, isolation fields, URL list)
 - [ ] 8.3 Activate button wired to Tauri command returning step summary; display errors and warnings
-- [ ] 8.4 Cleanup flow: show divergences, confirm, show outcome
+- [x] 8.4 Cleanup flow: show divergences, confirm, show outcome
 
 ## 9. Packaging and documentation
 

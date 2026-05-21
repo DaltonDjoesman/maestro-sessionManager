@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "name": "Smoke test (mock browser)",
+  "applications": [
+    {
+      "executable": "/bin/true",
+      "args": [],
+      "cwd": null,
+      "skip_if_running": null
+    }
+  ],
+  "browser": {
+    "family": "chromium_like",
+    "executable": "/bin/true",
+    "user_data_dir": "/tmp/maestro-smoke-user-data",
+    "firefox_profile": null,
+    "firefox_no_remote": null,
+    "urls": ["https://example.com"]
+  },
+  "cleanup": null
+}

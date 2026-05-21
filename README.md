@@ -25,7 +25,7 @@ npm run tauri dev
 
 ## Backend / agent workflow
 
-Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing backend work, follow **[docs/backend-workflow.md](docs/backend-workflow.md)** (Superpowers TDD, verification before completion, `cargo test`, small commits). The normative OpenSpec change is **[openspec/changes/backend-superpowers-workflow/](openspec/changes/backend-superpowers-workflow/)**.
+Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing backend work, follow **[docs/backend-workflow.md](docs/backend-workflow.md)** (Superpowers TDD, verification before completion, `cargo test`, small commits). The normative requirements live in **[openspec/specs/backend-dev-workflow/spec.md](openspec/specs/backend-dev-workflow/spec.md)**.
 
 ## Project layout
 
@@ -34,6 +34,6 @@ Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing b
 | `src/` | React UI (Vite) |
 | `src-tauri/` | Rust core: profiles, settings, activation, browser, cleanup, `platform` |
 | `openspec/changes/maestro-mvp/` | OpenSpec change: proposal, design, specs, tasks |
-| `openspec/changes/backend-superpowers-workflow/` | OpenSpec change: backend dev workflow (agents, TDD, commits) |
+| `openspec/specs/backend-dev-workflow/` | OpenSpec capability: backend dev workflow (agents, TDD, commits) |
 
 OpenSpec workflow commands live under `.cursor/commands/` (`opsx-apply`, etc.).

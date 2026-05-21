@@ -1,9 +1,9 @@
-//! Context cleanup: process diff, confirmation, SIGTERM/SIGKILL (task 7).
+//! Context cleanup: divergence vs profile, confirmation-driven termination (`context-cleanup` spec).
 
-use thiserror::Error;
+mod diff;
+mod terminate;
+mod types;
 
-#[derive(Debug, Error)]
-pub enum CleanupError {
-    #[error("cleanup error: {0}")]
-    Message(String),
-}
+pub use diff::{allowed_executable_basenames, compute_divergences};
+pub use terminate::terminate_process;
+pub use types::{CleanupDivergenceRow, CleanupTerminateResult};

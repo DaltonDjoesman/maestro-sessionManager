@@ -237,3 +237,187 @@ body {
   display: flex;
   justify-content: flex-end;
 }
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.catalog-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.catalog-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #2d3340;
+  background: #1e222b;
+}
+
+.catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.catalog-table th,
+.catalog-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #2d3340;
+  vertical-align: middle;
+}
+
+.catalog-table thead th {
+  color: #9aa0a6;
+  font-weight: 600;
+}
+
+.catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.btn-compact {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.btn-compact.danger {
+  border-color: #8b4a4a;
+  color: #f2a6a6;
+}
+
+.file-path {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.badge-ok {
+  background: #1b3d2d;
+  color: #81c784;
+}
+
+.badge-bad {
+  background: #3d1b1b;
+  color: #e57373;
+}
+
+.badge-status-success {
+  background: #1b3d2d;
+  color: #81c784;
+}
+
+.badge-status-failure {
+  background: #3d1b1b;
+  color: #e57373;
+}
+
+.badge-status-warning {
+  background: #3d351b;
+  color: #ffb74d;
+}
+
+.badge-status-skipped {
+  background: #2a2d38;
+  color: #9aa0a6;
+}
+
+.profile-editor .editor-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #2d3340;
+  background: #1e222b;
+}
+
+.profile-editor .editor-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.app-card {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #2d3340;
+  background: #1a1d26;
+}
+
+.app-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #9aa0a6;
+}
+
+.field textarea {
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #2d3340;
+  background: #12141a;
+  color: #e8eaed;
+  min-height: 4rem;
+  resize: vertical;
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.browser-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2d3340;
+}
+
+.editor-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activation-results {
+  margin-bottom: 2rem;
+}
+
+.detail-cell {
+  max-width: 16rem;
+  font-size: 0.8rem;
+  color: #b8c4e0;
+  word-break: break-word;
+}

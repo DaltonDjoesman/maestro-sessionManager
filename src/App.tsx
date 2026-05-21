@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ProfileCatalogScreen } from "./components/ProfileCatalogScreen";
+import { ProfileEditorScreen } from "./components/ProfileEditorScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
 import type { ApplicationSettings } from "./types/settings";
 import type { CleanupDivergenceRow, CleanupTerminateResult } from "./types/cleanup";
 import "./App.css";
 
-type View = "home" | "settings";
+type View = "home" | "settings" | "profiles" | "profile-editor";
 
 function App() {
   const [view, setView] = useState<View>("home");
   const [platform, setPlatform] = useState("…");
   const [profilesRoot, setProfilesRoot] = useState("…");
+  const [editorPath, setEditorPath] = useState<string | null>(null);
 
   const [cleanupPath, setCleanupPath] = useState("");
   const [divergences, setDivergences] = useState<CleanupDivergenceRow[]>([]);
@@ -32,6 +35,12 @@ function App() {
       .then((s) => setProfilesRoot(s.profiles_root))
       .catch(() => setProfilesRoot("unavailable"));
   }, [view]);
+
+  useEffect(() => {
+    if (view === "profile-editor" && !editorPath) {
+      setView("profiles");
+    }
+  }, [view, editorPath]);
 
   const scanDivergences = useCallback(async () => {
     setCleanupError(null);
@@ -93,6 +102,30 @@ function App() {
     return <SettingsScreen onBack={() => setView("home")} />;
   }
 
+  if (view === "profiles") {
+    return (
+      <ProfileCatalogScreen
+        onBack={() => setView("home")}
+        onEdit={(path) => {
+          setEditorPath(path);
+          setView("profile-editor");
+        }}
+      />
+    );
+  }
+
+  if (view === "profile-editor" && editorPath) {
+    return (
+      <ProfileEditorScreen
+        filePath={editorPath}
+        onBack={() => {
+          setView("profiles");
+          setEditorPath(null);
+        }}
+      />
+    );
+  }
+
   return (
     <main className="container">
       <header className="hero row-between">
@@ -100,13 +133,14 @@ function App() {
           <h1>Maestro</h1>
           <p className="tagline">Session environment manager for Linux</p>
         </div>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => setView("settings")}
-        >
-          Settings
-        </button>
+        <div className="header-actions">
+          <button type="button" className="btn-secondary" onClick={() => setView("profiles")}>
+            Profiles
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => setView("settings")}>
+            Settings
+          </button>
+        </div>
       </header>
       <section className="status-card">
         <p>
@@ -115,7 +149,7 @@ function App() {
         <p>
           Profiles directory: <strong>{profilesRoot}</strong>
         </p>
-        <p className="hint">Profile catalog and editor UI arrive in later tasks.</p>
+        <p className="hint">Open Profiles to list, edit, duplicate, delete, and activate sessions.</p>
       </section>
 
       <section className="cleanup-card">

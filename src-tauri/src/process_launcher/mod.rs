@@ -5,7 +5,7 @@ mod spawn;
 mod summary;
 
 pub use sequence::spawn_ordered_with_delay_after_success;
-pub use spawn::{spawn_launch_spec, LaunchSpec, SpawnOutcome};
+pub use spawn::{spawn_command, spawn_launch_spec, LaunchSpec, SpawnOutcome};
 pub use summary::{map_application_spawn_results, spawn_application_sequence_summaries};
 
 use std::path::PathBuf;

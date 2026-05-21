@@ -1,6 +1,6 @@
 //! Spawn child processes from launch specs (executable, args, optional cwd).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use tokio::process::Command;
@@ -39,6 +39,29 @@ pub async fn spawn_launch_spec(spec: &LaunchSpec) -> SpawnOutcome {
         }
         Err(e) => SpawnOutcome::Failed {
             message: format!("failed to spawn `{}`: {e}", spec.executable),
+        },
+    }
+}
+
+/// Spawn a program with explicit argv slice (used by session activation for browser argv).
+pub async fn spawn_command(program: &str, args: &[String], cwd: Option<&Path>) -> SpawnOutcome {
+    let mut cmd = Command::new(program);
+    cmd.args(args);
+    if let Some(cwd) = cwd {
+        cmd.current_dir(cwd);
+    }
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+
+    match cmd.spawn() {
+        Ok(child) => {
+            let pid = child.id().unwrap_or(0);
+            drop(child);
+            SpawnOutcome::Started { pid }
+        }
+        Err(e) => SpawnOutcome::Failed {
+            message: format!("failed to spawn `{program}`: {e}"),
         },
     }
 }
@@ -83,6 +106,12 @@ mod tests {
             cwd: None,
         };
         let out = spawn_launch_spec(&spec).await;
+        assert!(matches!(out, SpawnOutcome::Started { .. }), "{out:?}");
+    }
+
+    #[tokio::test]
+    async fn spawn_command_matches_launch_spec() {
+        let out = spawn_command("/bin/true", &[], None).await;
         assert!(matches!(out, SpawnOutcome::Started { .. }), "{out:?}");
     }
 }

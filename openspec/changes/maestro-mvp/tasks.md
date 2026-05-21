@@ -43,16 +43,16 @@
 
 ## 8. UI integration
 
-- [ ] 8.1 Session catalog view: list, create, edit, duplicate, delete profiles
-- [ ] 8.2 Profile editor: applications table, browser block (family, executable, isolation fields, URL list)
-- [ ] 8.3 Activate button wired to Tauri command returning step summary; display errors and warnings
+- [x] 8.1 Session catalog view: list, create, edit, duplicate, delete profiles
+- [x] 8.2 Profile editor: applications table, browser block (family, executable, isolation fields, URL list)
+- [x] 8.3 Activate button wired to Tauri command returning step summary; display errors and warnings
 - [x] 8.4 Cleanup flow: show divergences, confirm, show outcome
 
 ## 9. Packaging and documentation
 
-- [ ] 9.1 Document profile JSON schema and example files in repository README or `docs/`
-- [ ] 9.2 Add Linux build instructions and target artifact (deb or AppImage or binary) for Pop!_OS
-- [ ] 9.3 Smoke-test: activate sample profile with mock browser path in CI or manual checklist
+- [x] 9.1 Document profile JSON schema and example files in repository README or `docs/`
+- [x] 9.2 Add Linux build instructions and target artifact (deb or AppImage or binary) for Pop!_OS
+- [x] 9.3 Smoke-test: activate sample profile with mock browser path in CI or manual checklist
 
 ## 10. Assisted profile capture (post-MVP slice)
 

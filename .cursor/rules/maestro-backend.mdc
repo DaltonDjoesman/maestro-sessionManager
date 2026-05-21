@@ -1,0 +1,16 @@
+---
+description: Maestro Rust/Tauri backend — Superpowers TDD, verification, small commits
+globs: src-tauri/**/*
+alwaysApply: false
+---
+
+# Maestro backend (`src-tauri`)
+
+Before implementing or fixing behavior here:
+
+1. Read **[docs/backend-workflow.md](../../docs/backend-workflow.md)** (skill paths, `cargo test`, when to run `npm run build`).
+2. Follow the OpenSpec capability **backend-dev-workflow**: [openspec/changes/backend-superpowers-workflow/specs/backend-dev-workflow/spec.md](../../openspec/changes/backend-superpowers-workflow/specs/backend-dev-workflow/spec.md).
+3. Use Superpowers skills from the repo (via Skill tool or file): **test-driven-development**, **verification-before-completion**, **systematic-debugging** for failures, **using-superpowers** at task start.
+4. Prefer **small, descriptive commits** per finished sub-task.
+
+Do not claim tests pass or work is complete without running the verification commands listed in `docs/backend-workflow.md`.

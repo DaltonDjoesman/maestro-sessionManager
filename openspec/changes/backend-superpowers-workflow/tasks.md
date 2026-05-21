@@ -5,4 +5,4 @@
 
 ## 2. Cursor guidance
 
-- [ ] 2.1 Add `.cursor/rules/maestro-backend.mdc` (alwaysApply or globs on `src-tauri/**`) pointing agents to `docs/backend-workflow.md` and the OpenSpec spec `backend-dev-workflow`
+- [x] 2.1 Add `.cursor/rules/maestro-backend.mdc` (alwaysApply or globs on `src-tauri/**`) pointing agents to `docs/backend-workflow.md` and the OpenSpec spec `backend-dev-workflow`

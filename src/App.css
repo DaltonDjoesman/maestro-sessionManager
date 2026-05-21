@@ -79,6 +79,90 @@ body {
   border-color: #2d3340;
 }
 
+.cleanup-card {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: #1a1d26;
+  border: 1px solid #2d3340;
+}
+
+.cleanup-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.cleanup-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.cleanup-row input[type="text"],
+.cleanup-row input[type="number"] {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #2d3340;
+  background: #12141a;
+  color: #e8eaed;
+  font: inherit;
+}
+
+.cleanup-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.cleanup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cleanup-table th,
+.cleanup-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #2d3340;
+  vertical-align: top;
+}
+
+.cleanup-table code {
+  font-size: 0.8rem;
+  color: #b8c4e0;
+}
+
+.cleanup-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.cleanup-actions label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.cleanup-msg {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #9aa0a6;
+}
+
+.cleanup-msg.error {
+  color: #f2a6a6;
+}
+
 .btn-secondary:hover {
   border-color: #5b8def;
 }

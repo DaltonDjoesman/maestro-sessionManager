@@ -330,6 +330,7 @@ mod tests {
             executable: "".into(),
             args: vec![],
             cwd: None,
+            skip_if_running: None,
         });
         let path = root.join("test.json");
         let err = dir.save_file(path.to_str().unwrap(), &p).unwrap_err();

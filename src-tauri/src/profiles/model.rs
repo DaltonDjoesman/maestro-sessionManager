@@ -17,6 +17,9 @@ pub struct ApplicationLaunchEntry {
     pub args: Vec<String>,
     #[serde(default)]
     pub cwd: Option<String>,
+    /// When `Some(true)`, skip spawn if a process with the same executable basename is already running.
+    #[serde(default)]
+    pub skip_if_running: Option<bool>,
 }
 
 /// Browser launch block aligned with `browser-launch` spec (families + isolation fields).
@@ -140,6 +143,20 @@ mod tests {
     }
 
     #[test]
+    fn deserializes_skip_if_running_on_application() {
+        let raw = r#"{
+            "schema_version": 1,
+            "session_id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Work",
+            "applications": [
+                { "executable": "cursor", "args": ["."], "skip_if_running": true }
+            ]
+        }"#;
+        let p: SessionProfile = serde_json::from_str(raw).expect("parse");
+        assert_eq!(p.applications[0].skip_if_running, Some(true));
+    }
+
+    #[test]
     fn rejects_future_schema_after_parse() {
         let raw = r#"{
             "schema_version": 99,
@@ -165,6 +182,7 @@ mod tests {
                 executable: " ".into(),
                 args: vec![],
                 cwd: None,
+                skip_if_running: None,
             }],
             browser: None,
             cleanup: None,

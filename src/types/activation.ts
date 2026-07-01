@@ -9,3 +9,17 @@ export type ActivationStepSummary = {
   detail?: string | null;
   pid?: number | null;
 };
+
+export type ActivateSessionResult = {
+  steps: ActivationStepSummary[];
+  activationLogPath?: string | null;
+};
+
+export type ActivationPreviewStep = {
+  stepType: string;
+  label: string;
+  argv: string[];
+  cwd?: string | null;
+  wouldSkip?: boolean | null;
+  skipDetail?: string | null;
+};

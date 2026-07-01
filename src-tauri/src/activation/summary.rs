@@ -29,3 +29,12 @@ pub struct ActivationStepSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pid: Option<u32>,
 }
+
+/// Result of executing an activation (steps plus optional log file on disk).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivateSessionResult {
+    pub steps: Vec<ActivationStepSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activation_log_path: Option<String>,
+}

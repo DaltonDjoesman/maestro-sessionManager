@@ -1,40 +1,65 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { AboutScreen } from "./components/AboutScreen";
 import { ProfileCatalogScreen } from "./components/ProfileCatalogScreen";
 import { ProfileEditorScreen } from "./components/ProfileEditorScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
+import type { ProfileCatalogEntry } from "./types/profile";
 import type { ApplicationSettings } from "./types/settings";
-import type { CleanupDivergenceRow, CleanupTerminateResult } from "./types/cleanup";
+import { applyDataThemeToDocument } from "./themeDom";
+import { loadLastSessionPath, saveLastSessionPath } from "./sessionCatalogUi";
 import "./App.css";
 
-type View = "home" | "settings" | "profiles" | "profile-editor";
+type View = "home" | "profiles" | "profile-editor" | "settings" | "about";
 
 function App() {
   const [view, setView] = useState<View>("home");
   const [platform, setPlatform] = useState("…");
-  const [profilesRoot, setProfilesRoot] = useState("…");
+  const [appSettings, setAppSettings] = useState<ApplicationSettings | null>(null);
   const [editorPath, setEditorPath] = useState<string | null>(null);
 
-  const [cleanupPath, setCleanupPath] = useState("");
-  const [divergences, setDivergences] = useState<CleanupDivergenceRow[]>([]);
-  const [selectedPids, setSelectedPids] = useState<Set<number>>(new Set());
-  const [cleanupBusy, setCleanupBusy] = useState(false);
-  const [cleanupError, setCleanupError] = useState<string | null>(null);
-  const [cleanupOutcome, setCleanupOutcome] = useState<CleanupTerminateResult[] | null>(null);
-  const [forceKill, setForceKill] = useState(false);
-  const [forceKillAfterMs, setForceKillAfterMs] = useState(1500);
+  const [lastSessionOk, setLastSessionOk] = useState(false);
 
-  useEffect(() => {
-    if (view !== "home") return;
-
+  const refreshAppSettings = useCallback(() => {
     invoke<string>("platform_name")
       .then(setPlatform)
       .catch(() => setPlatform("unavailable"));
 
     invoke<ApplicationSettings>("get_settings")
-      .then((s) => setProfilesRoot(s.profiles_root))
-      .catch(() => setProfilesRoot("unavailable"));
-  }, [view]);
+      .then(setAppSettings)
+      .catch(() => setAppSettings(null));
+  }, []);
+
+  useEffect(() => {
+    refreshAppSettings();
+  }, [refreshAppSettings]);
+
+  const profilesRoot = appSettings?.profiles_root ?? "";
+  const lastSessionPath = profilesRoot.trim() ? loadLastSessionPath(profilesRoot) : null;
+
+  useEffect(() => {
+    if (!lastSessionPath || !profilesRoot.trim()) {
+      setLastSessionOk(false);
+      return;
+    }
+    let cancelled = false;
+    invoke<ProfileCatalogEntry[]>("list_session_profiles")
+      .then((rows) => {
+        if (cancelled) return;
+        setLastSessionOk(rows.some((r) => r.filePath === lastSessionPath && r.valid));
+      })
+      .catch(() => {
+        if (!cancelled) setLastSessionOk(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lastSessionPath, profilesRoot, view]);
+
+  useEffect(() => {
+    if (!appSettings) return;
+    return applyDataThemeToDocument(appSettings.theme);
+  }, [appSettings?.theme]);
 
   useEffect(() => {
     if (view === "profile-editor" && !editorPath) {
@@ -42,222 +67,123 @@ function App() {
     }
   }, [view, editorPath]);
 
-  const scanDivergences = useCallback(async () => {
-    setCleanupError(null);
-    setCleanupOutcome(null);
-    setCleanupBusy(true);
-    setSelectedPids(new Set());
-    try {
-      const rows = await invoke<CleanupDivergenceRow[]>("list_cleanup_divergences", {
-        path: cleanupPath.trim(),
-      });
-      setDivergences(rows);
-    } catch (e) {
-      setDivergences([]);
-      setCleanupError(String(e));
-    } finally {
-      setCleanupBusy(false);
+  const navigate = (next: View) => {
+    if (next === "profile-editor") return;
+    setEditorPath(null);
+    setView(next);
+  };
+
+  const openEditor = (path: string) => {
+    if (profilesRoot.trim()) {
+      saveLastSessionPath(profilesRoot, path);
     }
-  }, [cleanupPath]);
+    setEditorPath(path);
+    setView("profile-editor");
+  };
 
-  const togglePid = useCallback((pid: number) => {
-    setSelectedPids((prev) => {
-      const next = new Set(prev);
-      if (next.has(pid)) next.delete(pid);
-      else next.add(pid);
-      return next;
-    });
-  }, []);
+  const navLinkClass = (target: View) => {
+    const active = view === target || (target === "profiles" && view === "profile-editor");
+    return active ? "app-nav-link app-nav-link--active" : "app-nav-link";
+  };
 
-  const runTermination = useCallback(async () => {
-    if (selectedPids.size === 0) return;
-    const ok = window.confirm(
-      `Send SIGTERM to ${selectedPids.size} selected process(es)?${
-        forceKill
-          ? `\n\nIf a process is still running after ${forceKillAfterMs} ms, SIGKILL will be sent (force kill opt-in).`
-          : ""
-      }`,
-    );
-    if (!ok) return;
-
-    setCleanupBusy(true);
-    setCleanupError(null);
-    setCleanupOutcome(null);
-    try {
-      const pids = [...selectedPids];
-      const results = await invoke<CleanupTerminateResult[]>("cleanup_terminate_processes", {
-        pids,
-        force_kill_after_ms: forceKill ? forceKillAfterMs : null,
-      });
-      setCleanupOutcome(results);
-      await scanDivergences();
-    } catch (e) {
-      setCleanupError(String(e));
-    } finally {
-      setCleanupBusy(false);
+  const renderMain = () => {
+    if (view === "settings") {
+      return (
+        <SettingsScreen
+          onReloadSettings={refreshAppSettings}
+          onThemePreview={(t) => {
+            applyDataThemeToDocument(t);
+          }}
+        />
+      );
     }
-  }, [selectedPids, forceKill, forceKillAfterMs, scanDivergences]);
-
-  if (view === "settings") {
-    return <SettingsScreen onBack={() => setView("home")} />;
-  }
-
-  if (view === "profiles") {
+    if (view === "about") {
+      return <AboutScreen />;
+    }
+    if (view === "profiles") {
+      return (
+        <ProfileCatalogScreen
+          profilesRoot={profilesRoot}
+          onEdit={openEditor}
+        />
+      );
+    }
+    if (view === "profile-editor" && editorPath) {
+      return (
+        <ProfileEditorScreen
+          filePath={editorPath}
+          onBack={() => {
+            setView("profiles");
+            setEditorPath(null);
+          }}
+        />
+      );
+    }
     return (
-      <ProfileCatalogScreen
-        onBack={() => setView("home")}
-        onEdit={(path) => {
-          setEditorPath(path);
-          setView("profile-editor");
-        }}
-      />
+      <main className="container home-screen">
+        <header className="hero">
+          <h1>Welcome</h1>
+          <p className="tagline">Pick a tab above to manage sessions or preferences.</p>
+        </header>
+        <section className="status-card home-status-card">
+          <p>
+            Platform: <strong>{platform}</strong>
+          </p>
+          <p>
+            Profiles directory: <strong>{profilesRoot || "…"}</strong>
+          </p>
+          {lastSessionPath && lastSessionOk ? (
+            <div className="home-continue-block">
+              <button
+                type="button"
+                className="btn-primary home-continue-btn"
+                onClick={() => openEditor(lastSessionPath)}
+              >
+                Continuar última sessão
+              </button>
+              <p className="hint home-continue-hint">
+                Opens the profile you last edited from this catalog. If the file was removed, use Sessions to pick
+                another.
+              </p>
+            </div>
+          ) : null}
+          <p className="hint" style={{ marginTop: "0.75rem" }}>
+            Open <strong>Sessions</strong> to list, create, edit, duplicate, delete, and activate session profiles.
+          </p>
+        </section>
+      </main>
     );
-  }
-
-  if (view === "profile-editor" && editorPath) {
-    return (
-      <ProfileEditorScreen
-        filePath={editorPath}
-        onBack={() => {
-          setView("profiles");
-          setEditorPath(null);
-        }}
-      />
-    );
-  }
+  };
 
   return (
-    <main className="container">
-      <header className="hero row-between">
-        <div>
-          <h1>Maestro</h1>
-          <p className="tagline">Session environment manager for Linux</p>
-        </div>
-        <div className="header-actions">
-          <button type="button" className="btn-secondary" onClick={() => setView("profiles")}>
-            Profiles
+    <div className="app-shell">
+      <header className="app-top-bar">
+        <div className="app-brand">
+          <button type="button" className="app-brand-btn" onClick={() => navigate("home")}>
+            Maestro
           </button>
-          <button type="button" className="btn-secondary" onClick={() => setView("settings")}>
+          <span className="app-brand-sub">Linux sessions</span>
+        </div>
+        <nav className="app-nav" aria-label="Main">
+          <button type="button" className={navLinkClass("home")} onClick={() => navigate("home")}>
+            Home
+          </button>
+          <button type="button" className={navLinkClass("profiles")} onClick={() => navigate("profiles")}>
+            Sessions
+          </button>
+          <button type="button" className={navLinkClass("settings")} onClick={() => navigate("settings")}>
             Settings
           </button>
-        </div>
+          <button type="button" className={navLinkClass("about")} onClick={() => navigate("about")}>
+            About
+          </button>
+        </nav>
       </header>
-      <section className="status-card">
-        <p>
-          Platform adapter: <strong>{platform}</strong>
-        </p>
-        <p>
-          Profiles directory: <strong>{profilesRoot}</strong>
-        </p>
-        <p className="hint">Open Profiles to list, edit, duplicate, delete, and activate sessions.</p>
-      </section>
 
-      <section className="cleanup-card">
-        <h2>Context cleanup (divergences)</h2>
-        <p className="hint" style={{ marginTop: 0 }}>
-          Path is relative to your configured profiles directory (same as other profile commands).
-          Only processes not allowed by the profile are listed. Termination requires explicit
-          confirmation per action.
-        </p>
-        <div className="cleanup-row">
-          <input
-            type="text"
-            placeholder="e.g. my-session.json"
-            value={cleanupPath}
-            onChange={(e) => setCleanupPath(e.target.value)}
-            aria-label="Profile file path"
-          />
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={cleanupBusy || !cleanupPath.trim()}
-            onClick={() => void scanDivergences()}
-          >
-            Scan divergences
-          </button>
-        </div>
-        {cleanupError ? <p className="cleanup-msg error">{cleanupError}</p> : null}
-        <div className="cleanup-table-wrap">
-          <table className="cleanup-table">
-            <thead>
-              <tr>
-                <th style={{ width: "2rem" }} />
-                <th>PID</th>
-                <th>Exe</th>
-                <th>Command</th>
-              </tr>
-            </thead>
-            <tbody>
-              {divergences.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="cleanup-msg">
-                    {cleanupBusy ? "Loading…" : "No rows (scan a profile or none divergent)."}
-                  </td>
-                </tr>
-              ) : (
-                divergences.map((row) => (
-                  <tr key={row.pid}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedPids.has(row.pid)}
-                        onChange={() => togglePid(row.pid)}
-                        aria-label={`Select PID ${row.pid}`}
-                      />
-                    </td>
-                    <td>{row.pid}</td>
-                    <td>
-                      <code>{row.executableBasename}</code>
-                    </td>
-                    <td>
-                      <code>{row.cmdPreview}</code>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="cleanup-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={cleanupBusy || selectedPids.size === 0}
-            onClick={() => void runTermination()}
-          >
-            Terminate selected…
-          </button>
-          <label>
-            <input
-              type="checkbox"
-              checked={forceKill}
-              onChange={(e) => setForceKill(e.target.checked)}
-            />
-            Force kill after timeout
-          </label>
-          <input
-            type="number"
-            min={0}
-            step={100}
-            value={forceKillAfterMs}
-            disabled={!forceKill}
-            onChange={(e) => setForceKillAfterMs(Number(e.target.value) || 0)}
-            aria-label="Milliseconds before SIGKILL"
-            style={{ maxWidth: "7rem" }}
-          />
-          <span className="cleanup-msg">ms after SIGTERM</span>
-        </div>
-        {cleanupOutcome ? (
-          <ul className="cleanup-msg" style={{ paddingLeft: "1.1rem" }}>
-            {cleanupOutcome.map((r) => (
-              <li key={r.pid}>
-                <strong>{r.pid}</strong>: {r.ok ? "ok" : "failed"} — {r.message}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
-    </main>
+      <div className="app-main" key={view === "profile-editor" ? `editor-${editorPath}` : view}>
+        {renderMain()}
+      </div>
+    </div>
   );
 }
 

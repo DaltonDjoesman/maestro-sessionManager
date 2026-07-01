@@ -3,10 +3,13 @@ import { invoke } from "@tauri-apps/api/core";
 import type { ApplicationSettings } from "../types/settings";
 
 interface SettingsScreenProps {
-  onBack: () => void;
+  /** Called after settings are saved (e.g. refresh home meta for profiles path). */
+  onReloadSettings?: () => void;
+  /** Optional: apply theme to the app shell immediately when the user changes the Theme control (before save). */
+  onThemePreview?: (theme: ApplicationSettings["theme"]) => void;
 }
 
-export function SettingsScreen({ onBack }: SettingsScreenProps) {
+export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScreenProps) {
   const [form, setForm] = useState<ApplicationSettings | null>(null);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
       });
       setForm(updated);
       setSaved(true);
+      onReloadSettings?.();
     } catch (err) {
       setSaveError(String(err));
     } finally {
@@ -74,14 +78,9 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
 
   return (
     <main className="container">
-      <header className="hero row-between">
-        <div>
-          <h1>Settings</h1>
-          <p className="tagline">Global Maestro preferences</p>
-        </div>
-        <button type="button" className="btn-secondary" onClick={onBack}>
-          Back
-        </button>
+      <header className="hero">
+        <h1>Settings</h1>
+        <p className="tagline">Global Maestro preferences</p>
       </header>
 
       <form className="settings-form" onSubmit={handleSubmit} noValidate>
@@ -147,6 +146,27 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
         </fieldset>
 
         <fieldset>
+          <legend>Profile editor assistant</legend>
+          <p className="hint">
+            When enabled, the profile editor can suggest running applications to add as launch rows.
+            This is optional; manual editing always works.
+          </p>
+          <label className="field-inline">
+            <input
+              type="checkbox"
+              checked={form.assisted_profile_capture_enabled}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  assisted_profile_capture_enabled: e.target.checked,
+                })
+              }
+            />
+            <span>Show running-apps assistant in profile editor</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
           <legend>Application</legend>
           <label className="field">
             <span>Logging verbosity</span>
@@ -171,12 +191,14 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
             <span>Theme</span>
             <select
               value={form.theme}
-              onChange={(e) =>
+              onChange={(e) => {
+                const theme = e.target.value as ApplicationSettings["theme"];
                 setForm({
                   ...form,
-                  theme: e.target.value as ApplicationSettings["theme"],
-                })
-              }
+                  theme,
+                });
+                onThemePreview?.(theme);
+              }}
             >
               <option value="system">System</option>
               <option value="light">Light</option>

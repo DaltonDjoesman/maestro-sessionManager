@@ -1,6 +1,6 @@
 # Maestro
 
-Desktop app (Tauri 2 + React + Rust) for orchestrating Linux work sessions: JSON profiles, app/browser launch, optional process cleanup.
+Desktop app (Tauri 2 + React + Rust) for orchestrating Linux work sessions: JSON profiles, app/browser launch, and activation summaries.
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing b
 | Path | Role |
 |------|------|
 | `src/` | React UI (Vite) |
-| `src-tauri/` | Rust core: profiles, settings, activation, browser, cleanup, `platform` |
+| `src-tauri/` | Rust core: profiles, settings, activation, browser, `platform` |
 | `docs/session-profile-schema.md` | Session profile JSON fields (schema v1) |
 | `docs/examples/` | Example profile JSON for smoke tests |
 | `docs/smoke-test-checklist.md` | Manual QA checklist |

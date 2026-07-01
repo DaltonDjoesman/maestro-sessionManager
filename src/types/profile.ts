@@ -8,6 +8,8 @@ export type ProfileCatalogEntry = {
   sessionId: string | null;
   name: string | null;
   error?: string | null;
+  applicationsCount?: number | null;
+  browserOnly?: boolean | null;
 };
 
 export type CreateProfileResult = {

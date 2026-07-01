@@ -56,6 +56,6 @@
 
 ## 10. Assisted profile capture (post-MVP slice)
 
-- [ ] 10.1 Gate feature with config/flag per assisted-profile-capture spec
-- [ ] 10.2 Implement running-apps candidate list with noise filter
-- [ ] 10.3 Optional Linux cwd hint for known editors; merge selected rows into draft profile
+- [x] 10.1 Gate feature with config/flag per assisted-profile-capture spec
+- [x] 10.2 Implement running-apps candidate list with noise filter
+- [x] 10.3 Optional Linux cwd hint for known editors; merge selected rows into draft profile

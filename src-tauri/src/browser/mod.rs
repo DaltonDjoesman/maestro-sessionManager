@@ -4,10 +4,12 @@
 //! [`BuiltBrowserCommand::warnings`] collects isolation and sandbox hints for the summary (task 5.3).
 
 mod build;
+mod hint;
 
 pub use build::{
     build_browser_launch, build_chromium_like_command, build_firefox_command, BuiltBrowserCommand,
 };
+pub use hint::{detect_system_default_browser, SystemDefaultBrowserHint};
 
 use thiserror::Error;
 

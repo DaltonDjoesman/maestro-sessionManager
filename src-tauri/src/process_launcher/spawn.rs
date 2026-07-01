@@ -20,8 +20,44 @@ pub enum SpawnOutcome {
     Failed { message: String },
 }
 
+/// Program + arguments exactly as [`spawn_launch_spec`] would use (including Flatpak host rewrite).
+pub fn resolved_spawn_argv(spec: &LaunchSpec) -> (String, Vec<String>) {
+    if let Some((program, argv)) = try_flatpak_host_launch(spec) {
+        return (program, argv);
+    }
+    (spec.executable.clone(), spec.args.clone())
+}
+
+/// Flatpak apps expose `/app/<name>` inside the sandbox; that path does not exist on the host.
+/// Map known basenames to `flatpak run <app-id>` (profile `args` are appended after the app id).
+fn try_flatpak_host_launch(spec: &LaunchSpec) -> Option<(String, Vec<String>)> {
+    let exe = spec.executable.trim();
+    if !exe.starts_with("/app/") {
+        return None;
+    }
+    if Path::new(exe).is_file() {
+        return None;
+    }
+    let base = Path::new(exe)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())?;
+    let app_id = match base.as_str() {
+        "obsidian" => "md.obsidian.Obsidian",
+        _ => return None,
+    };
+    let mut argv = vec!["run".into(), app_id.into()];
+    argv.extend(spec.args.iter().cloned());
+    Some(("flatpak".into(), argv))
+}
+
 /// Spawn without blocking the async executor; I/O is discarded; spawn errors are captured.
 pub async fn spawn_launch_spec(spec: &LaunchSpec) -> SpawnOutcome {
+    let (program, argv) = resolved_spawn_argv(spec);
+    if program != spec.executable || argv != spec.args {
+        return spawn_command(&program, &argv, spec.cwd.as_deref()).await;
+    }
+
     let mut cmd = Command::new(&spec.executable);
     cmd.args(&spec.args);
     if let Some(cwd) = &spec.cwd {
@@ -69,6 +105,18 @@ pub async fn spawn_command(program: &str, args: &[String], cwd: Option<&Path>) -
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn flatpak_host_maps_obsidian_sandbox_path() {
+        let spec = LaunchSpec {
+            executable: "/app/obsidian".into(),
+            args: vec!["--foo".into()],
+            cwd: None,
+        };
+        let (prog, argv) = resolved_spawn_argv(&spec);
+        assert_eq!(prog, "flatpak");
+        assert_eq!(argv, vec!["run", "md.obsidian.Obsidian", "--foo"]);
+    }
 
     #[tokio::test]
     async fn spawn_bin_true_succeeds() {

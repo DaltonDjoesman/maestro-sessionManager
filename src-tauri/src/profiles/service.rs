@@ -19,6 +19,12 @@ pub struct ProfileCatalogEntry {
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// When `valid`, number of application launch rows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub applications_count: Option<u32>,
+    /// When `valid`, whether the profile launches browser only (browser set and no apps).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub browser_only: Option<bool>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -85,20 +91,28 @@ impl ProfileDirectory {
                         session_id: None,
                         name: None,
                         error: Some(format!("read {}: {e}", path.display())),
+                        applications_count: None,
+                        browser_only: None,
                     });
                     continue;
                 }
             };
 
             match parse_and_validate(&file_path, &bytes) {
-                Ok(profile) => entries.push(ProfileCatalogEntry {
-                    file_path: file_path.clone(),
-                    file_name,
-                    valid: true,
-                    session_id: Some(profile.session_id.clone()),
-                    name: Some(profile.name.clone()),
-                    error: None,
-                }),
+                Ok(profile) => {
+                    let browser_only = profile.browser.is_some() && profile.applications.is_empty();
+                    let applications_count = profile.applications.len() as u32;
+                    entries.push(ProfileCatalogEntry {
+                        file_path: file_path.clone(),
+                        file_name,
+                        valid: true,
+                        session_id: Some(profile.session_id.clone()),
+                        name: Some(profile.name.clone()),
+                        error: None,
+                        applications_count: Some(applications_count),
+                        browser_only: Some(browser_only),
+                    })
+                }
                 Err(e) => entries.push(ProfileCatalogEntry {
                     file_path: file_path.clone(),
                     file_name,
@@ -106,6 +120,8 @@ impl ProfileDirectory {
                     session_id: None,
                     name: None,
                     error: Some(e.to_string()),
+                    applications_count: None,
+                    browser_only: None,
                 }),
             }
         }
@@ -155,6 +171,66 @@ impl ProfileDirectory {
         let mut profile = self.load_file(user_path)?;
         profile.session_id = Uuid::new_v4().to_string();
         profile.name = format!("{} (copy)", profile.name);
+        profile.schema_version = CURRENT_PROFILE_SCHEMA_VERSION;
+
+        let dest = self.root.join(format!("{}.json", profile.session_id));
+        profile.validate(&dest.to_string_lossy())?;
+        atomic_write_json(&dest, &profile)?;
+        Ok(DuplicateProfileResult {
+            file_path: dest.to_string_lossy().into_owned(),
+            profile,
+        })
+    }
+
+    /// Duplicate like [`Self::duplicate_file`], but set the new profile display name explicitly.
+    pub fn duplicate_file_with_display_name(
+        &self,
+        user_path: &str,
+        display_name: &str,
+    ) -> Result<DuplicateProfileResult, ProfileError> {
+        fs::create_dir_all(&self.root)?;
+        let name = display_name.trim();
+        if name.is_empty() {
+            return Err(ProfileError::Validation {
+                path: user_path.to_string(),
+                message: "display name must not be empty".into(),
+            });
+        }
+        let mut profile = self.load_file(user_path)?;
+        profile.session_id = Uuid::new_v4().to_string();
+        profile.name = name.to_string();
+        profile.schema_version = CURRENT_PROFILE_SCHEMA_VERSION;
+
+        let dest = self.root.join(format!("{}.json", profile.session_id));
+        profile.validate(&dest.to_string_lossy())?;
+        atomic_write_json(&dest, &profile)?;
+        Ok(DuplicateProfileResult {
+            file_path: dest.to_string_lossy().into_owned(),
+            profile,
+        })
+    }
+
+    /// Parse JSON from another machine/editor, validate, assign a new `session_id`, set `name`, and save under this root.
+    pub fn import_profile_json(&self, json: &str, display_name: &str) -> Result<DuplicateProfileResult, ProfileError> {
+        fs::create_dir_all(&self.root)?;
+        let name = display_name.trim();
+        if name.is_empty() {
+            return Err(ProfileError::Validation {
+                path: "import".into(),
+                message: "display name must not be empty".into(),
+            });
+        }
+
+        let bytes = json.as_bytes();
+        let mut profile: SessionProfile = serde_json::from_slice(bytes).map_err(|e| {
+            ProfileError::InvalidJson {
+                path: "import.json".into(),
+                message: e.to_string(),
+            }
+        })?;
+        profile.validate("<import>")?;
+        profile.session_id = Uuid::new_v4().to_string();
+        profile.name = name.to_string();
         profile.schema_version = CURRENT_PROFILE_SCHEMA_VERSION;
 
         let dest = self.root.join(format!("{}.json", profile.session_id));
@@ -304,6 +380,20 @@ mod tests {
         assert_eq!(cat.len(), 1);
         assert!(!cat[0].valid);
         assert!(cat[0].error.as_ref().unwrap().contains("bad.json"));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn import_profile_json_assigns_new_id() {
+        let root = temp_root();
+        fs::create_dir_all(&root).unwrap();
+        let dir = ProfileDirectory::new(root.clone());
+        let created = dir.create_profile().unwrap();
+        let json = fs::read_to_string(&created.file_path).unwrap();
+        let imported = dir.import_profile_json(&json, "Imported name").unwrap();
+        assert_ne!(imported.profile.session_id, created.profile.session_id);
+        assert_eq!(imported.profile.name, "Imported name");
+        assert!(fs::metadata(&imported.file_path).is_ok());
         let _ = fs::remove_dir_all(&root);
     }
 

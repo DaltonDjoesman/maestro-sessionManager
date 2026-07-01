@@ -1,19 +1,20 @@
 mod activation;
 mod browser;
-mod cleanup;
+mod capture;
 mod platform;
 mod process_launcher;
 mod profiles;
 mod settings;
 
-use activation::ActivationStepSummary;
-use cleanup::{CleanupDivergenceRow, CleanupTerminateResult};
-use platform::{LinuxPlatform, PlatformContext};
+use activation::{ActivateSessionResult, ActivationPreviewStep};
+use platform::LinuxPlatform;
 use profiles::{
     CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,
     SessionProfile,
 };
 
+use browser::SystemDefaultBrowserHint;
+use capture::RunningAppCandidate;
 use settings::{ApplicationSettings, SettingsManager};
 use tauri::Manager;
 
@@ -35,6 +36,11 @@ fn get_settings(manager: tauri::State<'_, SettingsManager>) -> ApplicationSettin
 }
 
 #[tauri::command]
+fn detect_system_default_browser() -> SystemDefaultBrowserHint {
+    browser::detect_system_default_browser()
+}
+
+#[tauri::command]
 fn validate_profiles_root(path: String) -> Result<(), String> {
     settings::validate_profiles_root_path(std::path::Path::new(path.trim()))
         .map_err(|e| e.to_string())
@@ -46,6 +52,16 @@ fn save_settings(
     manager: tauri::State<'_, SettingsManager>,
 ) -> Result<ApplicationSettings, String> {
     manager.update_and_save(settings).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn list_assistant_running_apps(
+    manager: tauri::State<'_, SettingsManager>,
+) -> Result<Vec<RunningAppCandidate>, String> {
+    if !manager.get().assisted_profile_capture_enabled {
+        return Ok(vec![]);
+    }
+    Ok(capture::list_running_app_candidates())
 }
 
 #[tauri::command]
@@ -110,57 +126,44 @@ fn duplicate_session_profile(
 }
 
 #[tauri::command]
-async fn activate_session_profile(
+fn duplicate_session_profile_with_name(
     path: String,
+    display_name: String,
     manager: tauri::State<'_, SettingsManager>,
-) -> Result<Vec<ActivationStepSummary>, String> {
-    let dir = ProfileDirectory::new(manager.get().profiles_root_path());
-    let profile = dir.load_file(&path).map_err(|e| e.to_string())?;
-    activation::activate_session_profile(&profile, &path)
-        .await
+) -> Result<DuplicateProfileResult, String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .duplicate_file_with_display_name(&path, &display_name)
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn list_cleanup_divergences(
-    path: String,
+fn import_session_profile_json(
+    json: String,
+    display_name: String,
     manager: tauri::State<'_, SettingsManager>,
-) -> Result<Vec<CleanupDivergenceRow>, String> {
-    let dir = ProfileDirectory::new(manager.get().profiles_root_path());
-    let profile = dir.load_file(&path).map_err(|e| e.to_string())?;
-    let platform = LinuxPlatform::new().map_err(|e| e.to_string())?;
-    let candidates = platform
-        .list_cleanup_process_candidates()
-        .map_err(|e| e.to_string())?;
-    let allowed = cleanup::allowed_executable_basenames(&profile);
-    let divergent = cleanup::compute_divergences(&candidates, &allowed);
-    Ok(divergent
-        .iter()
-        .map(CleanupDivergenceRow::from)
-        .collect())
+) -> Result<DuplicateProfileResult, String> {
+    ProfileDirectory::new(manager.get().profiles_root_path())
+        .import_profile_json(&json, &display_name)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn cleanup_terminate_processes(
-    pids: Vec<u32>,
-    force_kill_after_ms: Option<u64>,
-) -> Result<Vec<CleanupTerminateResult>, String> {
-    let mut out = Vec::with_capacity(pids.len());
-    for pid in pids {
-        match cleanup::terminate_process(pid, force_kill_after_ms).await {
-            Ok(message) => out.push(CleanupTerminateResult {
-                pid,
-                ok: true,
-                message,
-            }),
-            Err(message) => out.push(CleanupTerminateResult {
-                pid,
-                ok: false,
-                message,
-            }),
-        }
-    }
-    Ok(out)
+fn preview_session_activation(
+    path: String,
+    profile: SessionProfile,
+) -> Result<Vec<ActivationPreviewStep>, String> {
+    activation::preview_session_activation(&profile, &path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn activate_session_profile(
+    path: String,
+    profile: SessionProfile,
+    _manager: tauri::State<'_, SettingsManager>,
+) -> Result<ActivateSessionResult, String> {
+    activation::activate_session_profile(&profile, &path)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -178,17 +181,20 @@ pub fn run() {
             greet,
             platform_name,
             get_settings,
+            detect_system_default_browser,
             validate_profiles_root,
             save_settings,
+            list_assistant_running_apps,
             list_session_profiles,
             load_session_profile,
             save_session_profile,
             create_session_profile,
             delete_session_profile,
             duplicate_session_profile,
+            duplicate_session_profile_with_name,
+            import_session_profile_json,
+            preview_session_activation,
             activate_session_profile,
-            list_cleanup_divergences,
-            cleanup_terminate_processes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

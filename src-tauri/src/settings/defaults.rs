@@ -35,6 +35,7 @@ pub fn default_settings() -> Result<ApplicationSettings, SettingsError> {
         default_browser_family: Some(BrowserFamily::ChromiumLike),
         logging_verbosity: LogVerbosity::Info,
         theme: UiTheme::System,
+        assisted_profile_capture_enabled: false,
     })
 }
 

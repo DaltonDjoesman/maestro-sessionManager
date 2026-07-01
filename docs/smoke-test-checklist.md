@@ -27,11 +27,20 @@ Use this after `npm run tauri dev` or a release build on **Pop!_OS** / Ubuntu-cl
 - [ ] Activation table shows at least one **browser** step and one **application** step; statuses are `success` or acceptable `warning` rows (warnings are OK for isolation hints).
 - [ ] Invalid profile (e.g. empty `applications[].executable`) shows an error and does not claim success.
 
-## 5. Cleanup divergences (optional)
-
-- [ ] On **Home**, under **Context cleanup**, enter the profile path (relative to profiles root, e.g. `smoke-session.profile.json`) and **Scan divergences** returns a table (possibly empty).
-- [ ] Do **not** terminate random PIDs on a production machine; skip or use a disposable test profile only.
-
-## 6. Rust tests (CI-friendly)
+## 5. Rust tests (CI-friendly)
 
 - [ ] `cd src-tauri && cargo test` passes.
+
+## 6. Running-apps assistant (profile editor)
+
+Requires **Settings → Show running-apps assistant** enabled.
+
+- [ ] **Edit** a profile → **Refresh list** loads candidates without error.
+- [ ] Default view shows **apps only** (e.g. Obsidian, LibreOffice main window) — not `node`/`npm run …`, `obexd`, or LibreOffice `oosplash`.
+- [ ] **Show processes** reveals background programs in a separate subdued section; rows with weak signals may show a **low** confidence badge.
+- [ ] Card titles use human **display names**; when the window title differs, it appears as a subtitle under the display name.
+- [ ] PID and command line are under **Technical details** (window title also listed when present).
+- [ ] **Add selected to draft** still appends launch rows and **Save** persists.
+- [ ] On **X11** with `wmctrl` installed: cards group under **Workspace N** when windows span workspaces (optional; skip on pure Wayland).
+- [ ] Multi-window browser (e.g. Vivaldi with tabs on different workspaces): refresh shows **separate cards** per window/workspace, not one collapsed row (optional).
+- [ ] **Flatpak / Snap / AppImage** (when installed): running instance matches without manual basename allowlisting — display name from `.desktop` `Name` (optional; use whatever install types you have).

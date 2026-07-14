@@ -5,42 +5,56 @@ Use this after `npm run tauri dev` or a release build on **Pop!_OS** / Ubuntu-cl
 ## 1. App starts
 
 - [ ] `npm install` then `npm run tauri dev` opens the Maestro window without Rust panic in the terminal.
+- [ ] A **sidebar** shows **Sessões**, **Captura**, **Definições** (and **Editor** while editing); **Sessões** is the default view (session hub).
+- [ ] Window **header** shows Maestro title, decorative controls, and **theme toggle** (persists via Definições).
+
+## 1b. Visual QA (design handoff)
+
+Compare against `design/maestro-desktop-prototype.html` (inner app window only, pt-PT copy):
+
+- [ ] **1440×900** — hub cards, sidebar, header match prototype layout.
+- [ ] **1366×768**, **1024×768** — no horizontal scroll; drawer sidebar below 900px width.
+- [ ] **390×844**, **360×800** — mobile drawer navigation usable.
 
 ## 2. Settings
 
-- [ ] **Settings** opens from the home screen.
+- [ ] **Definições** opens from the sidebar.
+- [ ] Settings are grouped (Geral, Sessões, Browser, Assistente, Avançado); **Sobre** appears at the bottom with version (no separate About tab).
 - [ ] Profiles root path validates (existing directory, writable).
+- [ ] Theme (system/light/dark) updates the app chrome without restart.
 - [ ] Save persists after restart (optional quick check).
 
-## 3. Profiles catalog
+## 3. Session hub
 
-- [ ] **Profiles** lists JSON files under the configured root.
-- [ ] **New profile** creates a file and opens the editor.
-- [ ] **Duplicate** creates a second file with “(copy)” in the name.
-- [ ] **Delete** removes a profile after confirmation (use a disposable test file).
+- [ ] Hub lists profiles as **grid cards** (prototype `profile-card` layout).
+- [ ] Toolbar: search, **Importar** (modal), **Nova sessão**.
+- [ ] **Ativar** on a valid card runs activation and opens the **terminal overlay** (timeline/logs).
+- [ ] **Editar** opens the profile editor.
+- [ ] Overflow menu (**···**): duplicate, export, delete, dry-run.
+- [ ] Search filters by name; pins appear in **Fixadas**; last session appears under **Continuar** when valid.
 
 ## 4. Profile editor and activation (mock browser)
 
-- [ ] Copy [`docs/examples/smoke-session.profile.json`](examples/smoke-session.profile.json) into your profiles directory (same basename or rename to `*.json`).
-- [ ] **Edit** loads the profile; **Save** works without validation error.
-- [ ] **Activate session** runs without a pre-spawn validation error.
-- [ ] Activation table shows at least one **browser** step and one **application** step; statuses are `success` or acceptable `warning` rows (warnings are OK for isolation hints).
-- [ ] Invalid profile (e.g. empty `applications[].executable`) shows an error and does not claim success.
+- [ ] Copy [`docs/examples/smoke-session.profile.json`](examples/smoke-session.profile.json) into your profiles directory.
+- [ ] Editor has sticky header (**Guardar**, **Ativar**) and tabs **Conteúdo** / **Captura** (if assistant on) / **Avançado**.
+- [ ] **Guardar** works without validation error.
+- [ ] **Ativar sessão** opens the shared **terminal overlay** with browser and application steps.
+- [ ] **Dry-run** from **Avançado** or hub overflow shows argv in terminal overlay with **DRY-RUN** badge.
+- [ ] Invalid profile shows an error and does not claim success.
 
 ## 5. Rust tests (CI-friendly)
 
 - [ ] `cd src-tauri && cargo test` passes.
 
-## 6. Running-apps assistant (profile editor)
+## 6. Running-apps assistant (Captura)
 
-Requires **Settings → Show running-apps assistant** enabled.
+Requires **Definições → Assistente** enabled.
 
-- [ ] **Edit** a profile → **Refresh list** loads candidates without error.
-- [ ] Default view shows **apps only** (e.g. Obsidian, LibreOffice main window) — not `node`/`npm run …`, `obexd`, or LibreOffice `oosplash`.
-- [ ] **Show processes** reveals background programs in a separate subdued section; rows with weak signals may show a **low** confidence badge.
-- [ ] Card titles use human **display names**; when the window title differs, it appears as a subtitle under the display name.
-- [ ] PID and command line are under **Technical details** (window title also listed when present).
-- [ ] **Add selected to draft** still appends launch rows and **Save** persists.
-- [ ] On **X11** with `wmctrl` installed: cards group under **Workspace N** when windows span workspaces (optional; skip on pure Wayland).
-- [ ] Multi-window browser (e.g. Vivaldi with tabs on different workspaces): refresh shows **separate cards** per window/workspace, not one collapsed row (optional).
-- [ ] **Flatpak / Snap / AppImage** (when installed): running instance matches without manual basename allowlisting — display name from `.desktop` `Name` (optional; use whatever install types you have).
+- [ ] Sidebar **Captura** opens standalone capture screen (search, show processes, create profile from selection).
+- [ ] **Captura** tab in editor still works for contextual draft import.
+- [ ] When assistant disabled, **Captura** nav is disabled with hint.
+- [ ] **Refresh** / list loads candidates without error.
+- [ ] Default view shows **apps only** — not `node`/`npm run …`, `obexd`, or LibreOffice `oosplash`.
+- [ ] **Show processes** reveals background programs.
+- [ ] **Add selected to draft** (editor tab) appends launch rows; **Guardar** persists.
+- [ ] Sidebar widget shows **sessão activa** after successful activation; **Desactivar** clears label.

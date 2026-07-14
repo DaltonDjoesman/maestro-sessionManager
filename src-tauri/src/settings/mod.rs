@@ -27,7 +27,7 @@ pub struct SettingsManager {
 impl SettingsManager {
     pub fn open_default() -> Result<Self, SettingsError> {
         let store = SettingsStore::open_default()?;
-        let settings = store.load()?;
+        let settings = store.load()?.normalize();
         Ok(Self {
             store,
             settings: Mutex::new(settings),
@@ -35,7 +35,11 @@ impl SettingsManager {
     }
 
     pub fn get(&self) -> ApplicationSettings {
-        self.settings.lock().expect("settings lock").clone()
+        self.settings
+            .lock()
+            .expect("settings lock")
+            .clone()
+            .normalize()
     }
 
     pub fn update_and_save(
@@ -58,6 +62,7 @@ impl SettingsManager {
             });
         }
 
+        new_settings = new_settings.normalize();
         self.store.save(&new_settings)?;
         *self.settings.lock().expect("settings lock") = new_settings.clone();
         Ok(new_settings)

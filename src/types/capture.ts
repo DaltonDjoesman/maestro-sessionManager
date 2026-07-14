@@ -59,8 +59,7 @@ export function sortByDisplayName(list: RunningAppCandidate[]): RunningAppCandid
   });
 }
 
-export function filterByKind(list: RunningAppCandidate[], showProcesses: boolean): RunningAppCandidate[] {
-  if (showProcesses) return list;
+export function filterByKind(list: RunningAppCandidate[]): RunningAppCandidate[] {
   return list.filter((c) => (c.kind ?? "app") === "app");
 }
 

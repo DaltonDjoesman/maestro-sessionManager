@@ -56,6 +56,12 @@ impl ApplicationSettings {
     pub fn is_schema_supported(&self) -> bool {
         self.schema_version <= SUPPORTED_SCHEMA_VERSION
     }
+
+    /// Assisted capture is always enabled; normalize persisted settings from older builds.
+    pub fn normalize(mut self) -> Self {
+        self.assisted_profile_capture_enabled = true;
+        self
+    }
 }
 
 #[cfg(test)]

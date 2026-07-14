@@ -8,15 +8,20 @@
       "args": [],
       "cwd": null,
       "skip_if_running": null
+    },
+    {
+      "executable": "/bin/true",
+      "args": [],
+      "cwd": null,
+      "skip_if_running": null,
+      "browser": {
+        "family": "chromium_like",
+        "user_data_dir": "/tmp/maestro-smoke-user-data",
+        "firefox_profile": null,
+        "firefox_no_remote": null,
+        "urls": ["https://example.com"]
+      }
     }
   ],
-  "browser": {
-    "family": "chromium_like",
-    "executable": "/bin/true",
-    "user_data_dir": "/tmp/maestro-smoke-user-data",
-    "firefox_profile": null,
-    "firefox_no_remote": null,
-    "urls": ["https://example.com"]
-  },
   "cleanup": null
 }

@@ -25,28 +25,36 @@ pub(crate) fn build_planned_activation(
     path_label: &str,
 ) -> Result<Vec<PlannedActivationItem>, ActivationError> {
     validate_before_activation(profile, path_label)?;
+    let profile = profile.clone().normalize();
     let running = collect_running_executable_basenames();
     let mut items = Vec::new();
 
-    if let Some(browser) = profile.browser.as_ref() {
-        let built = build_browser_launch(browser)?;
-        for w in &built.warnings {
-            items.push(PlannedActivationItem::BrowserWarning(w.clone()));
-        }
-        let (program, args) = built.argv_for_spawn();
-        items.push(PlannedActivationItem::BrowserLaunch {
-            program: program.to_string(),
-            args: args.to_vec(),
-        });
-    }
-
     for entry in &profile.applications {
         let skip_detail = entry_skip_detail(entry, &running);
-        let spec = LaunchSpec::from(entry);
-        items.push(PlannedActivationItem::Application {
-            spec,
-            skip_detail,
-        });
+        if let Some(block) = entry.to_profile_browser_block() {
+            if skip_detail.is_some() {
+                items.push(PlannedActivationItem::Application {
+                    spec: LaunchSpec::from(entry),
+                    skip_detail,
+                });
+                continue;
+            }
+            let built = build_browser_launch(&block)?;
+            for w in &built.warnings {
+                items.push(PlannedActivationItem::BrowserWarning(w.clone()));
+            }
+            let (program, args) = built.argv_for_spawn();
+            items.push(PlannedActivationItem::BrowserLaunch {
+                program: program.to_string(),
+                args: args.to_vec(),
+            });
+        } else {
+            let spec = LaunchSpec::from(entry);
+            items.push(PlannedActivationItem::Application {
+                spec,
+                skip_detail,
+            });
+        }
     }
 
     Ok(items)
@@ -119,7 +127,7 @@ pub(crate) fn preview_steps_from_plan(items: &[PlannedActivationItem]) -> Vec<Ac
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::profiles::{ApplicationLaunchEntry, ProfileBrowserBlock, SessionProfile};
+    use crate::profiles::{ApplicationBrowserSettings, ApplicationLaunchEntry, SessionProfile};
     use crate::settings::BrowserFamily;
 
     #[test]
@@ -133,6 +141,7 @@ mod tests {
                 args: vec!["--foo".into()],
                 cwd: Some("/tmp".into()),
                 skip_if_running: None,
+                browser: None,
             }],
             browser: None,
             cleanup: None,
@@ -158,6 +167,7 @@ mod tests {
                 args: vec!["--verbose".into()],
                 cwd: None,
                 skip_if_running: None,
+                browser: None,
             }],
             browser: None,
             cleanup: None,
@@ -178,15 +188,20 @@ mod tests {
             schema_version: 1,
             session_id: "sid".into(),
             name: "N".into(),
-            applications: vec![],
-            browser: Some(ProfileBrowserBlock {
-                family: BrowserFamily::ChromiumLike,
+            applications: vec![ApplicationLaunchEntry {
                 executable: "/bin/true".into(),
-                user_data_dir: Some("/tmp/ud".into()),
-                firefox_profile: None,
-                firefox_no_remote: None,
-                urls: vec!["https://a.example".into()],
-            }),
+                args: vec![],
+                cwd: None,
+                skip_if_running: None,
+                browser: Some(ApplicationBrowserSettings {
+                    family: BrowserFamily::ChromiumLike,
+                    user_data_dir: Some("/tmp/ud".into()),
+                    firefox_profile: None,
+                    firefox_no_remote: None,
+                    urls: vec!["https://a.example".into()],
+                }),
+            }],
+            browser: None,
             cleanup: None,
         };
         let plan = build_planned_activation(&p, "/x.json").expect("plan");

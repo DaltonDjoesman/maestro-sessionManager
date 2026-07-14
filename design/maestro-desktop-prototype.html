@@ -1,0 +1,2616 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maestro — Linux Context Switcher</title>
+  
+  <!-- Tailwind CSS is bypassed for custom system CSS styling -->
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM - TOKENS & UTILITIES (Modern Minimal Dark / Light)
+       ========================================================================== */
+    :root {
+      --bg: oklch(13% 0.01 240);
+      --surface: oklch(16% 0.012 240);
+      --surface-hover: oklch(20% 0.015 240);
+      --fg: oklch(93% 0.01 240);
+      --muted: oklch(62% 0.01 240);
+      --border: oklch(22% 0.015 240);
+      --border-focus: oklch(50% 0.12 240);
+      --accent: oklch(62% 0.19 252); /* Electric Indigo-Blue */
+      --accent-hover: oklch(68% 0.20 252);
+      --accent-dim: oklch(25% 0.05 252);
+      
+      --success: oklch(72% 0.16 140);
+      --success-dim: oklch(24% 0.05 140);
+      --warning: oklch(78% 0.15 80);
+      --warning-dim: oklch(25% 0.05 80);
+      --danger: oklch(62% 0.18 20);
+      --danger-dim: oklch(22% 0.06 20);
+
+      --font-display: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+      
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.6);
+      
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    .light-mode {
+      --bg: oklch(98% 0.002 240);
+      --surface: oklch(100% 0 0);
+      --surface-hover: oklch(95% 0.003 240);
+      --fg: oklch(15% 0.012 250);
+      --muted: oklch(52% 0.012 250);
+      --border: oklch(90% 0.005 250);
+      --border-focus: oklch(58% 0.18 255);
+      --accent: oklch(58% 0.18 255);
+      --accent-hover: oklch(52% 0.18 255);
+      --accent-dim: oklch(92% 0.02 255);
+
+      --success: oklch(56% 0.15 140);
+      --success-dim: oklch(92% 0.03 140);
+      --warning: oklch(68% 0.14 80);
+      --warning-dim: oklch(93% 0.03 80);
+      --danger: oklch(55% 0.18 20);
+      --danger-dim: oklch(92% 0.03 20);
+      
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.12);
+    }
+
+    /* ==========================================================================
+       BASE STYLES & RESET
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0b0c10;
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Linux Desktop Container Mockup */
+    .os-container {
+      width: 100%;
+      height: 100%;
+      max-width: 1440px;
+      max-height: 900px;
+      background: linear-gradient(135deg, oklch(20% 0.05 260), oklch(10% 0.02 290));
+      position: relative;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top OS Bar (Simulating GNOME Top Bar) */
+    .os-topbar {
+      height: 32px;
+      background: rgba(10, 10, 12, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: #eaebed;
+      user-select: none;
+      z-index: 100;
+    }
+
+    .os-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .os-topbar-center {
+      font-weight: 500;
+    }
+
+    .os-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .tray-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+    }
+
+    .tray-indicator:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .tray-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--muted);
+    }
+    
+    .tray-dot.active {
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    /* Simulated Tray Menu Dropdown */
+    .tray-dropdown {
+      position: absolute;
+      top: 36px;
+      right: 16px;
+      width: 280px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 8px 0;
+      z-index: 200;
+      font-family: var(--font-body);
+    }
+
+    .tray-header {
+      padding: 8px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
+
+    .tray-item {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .tray-item:hover {
+      background: var(--surface-hover);
+    }
+
+    .tray-item-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tray-item-name {
+      font-weight: 500;
+      color: var(--fg);
+    }
+
+    .tray-item-desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Tauri App Window Frame */
+    .app-window {
+      flex: 1;
+      margin: 24px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Window Header / Title Bar */
+    .app-header {
+      height: 48px;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      user-select: none;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .win-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .win-close { background-color: #ff5f56; }
+    .win-min { background-color: #ffbd2e; }
+    .win-max { background-color: #27c93f; }
+
+    .app-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-logo {
+      width: 20px;
+      height: 20px;
+      color: var(--accent);
+    }
+
+    .app-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: var(--fg);
+    }
+
+    .window-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Main Workspace Layout */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .app-sidebar {
+      width: 220px;
+      background-color: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 0;
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 0 12px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item:hover {
+      background-color: var(--surface-hover);
+      color: var(--fg);
+    }
+
+    .nav-item.active {
+      background-color: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .current-session-widget {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .widget-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .widget-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 550;
+      color: var(--fg);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--muted);
+    }
+    
+    .status-dot.active {
+      background-color: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    /* Content Area */
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      background-color: var(--bg);
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Typography Hierarchy & Spacing */
+    .view-title-group {
+      margin-bottom: 24px;
+    }
+
+    .view-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--fg);
+      margin-bottom: 4px;
+    }
+
+    .view-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ==========================================================================
+       HUB VIEW (DASHBOARD)
+       ========================================================================== */
+    .hub-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 36px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0 12px 0 36px;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      background-color: var(--bg);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 9px;
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+    }
+
+    .btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--fg);
+      font-family: inherit;
+      font-weight: 550;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--muted);
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title:first-of-type {
+      margin-top: 0;
+    }
+
+    /* Grid layouts */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    /* Card design */
+    .profile-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 156px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .profile-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .card-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .card-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .card-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 550;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-gray {
+      background-color: var(--border);
+      color: var(--fg);
+    }
+
+    .badge-accent {
+      background-color: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .badge-danger {
+      background-color: var(--danger-dim);
+      color: var(--danger);
+    }
+
+    .badge-warning {
+      background-color: var(--warning-dim);
+      color: var(--warning);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+
+    .card-action-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .card-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .card-btn:hover {
+      background-color: var(--surface-hover);
+      color: var(--fg);
+    }
+
+    .card-btn-active {
+      color: var(--accent);
+      border-color: var(--accent-dim);
+      background-color: var(--accent-dim);
+    }
+
+    .card-btn-active:hover {
+      background-color: var(--accent-dim);
+      color: var(--accent-hover);
+    }
+
+    .overflow-menu-wrapper {
+      position: relative;
+    }
+
+    .overflow-menu {
+      position: absolute;
+      bottom: 34px;
+      right: 0;
+      width: 160px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      padding: 4px 0;
+      z-index: 10;
+    }
+
+    .overflow-menu-item {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--fg);
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overflow-menu-item:hover {
+      background-color: var(--surface-hover);
+    }
+
+    .overflow-menu-item.danger {
+      color: var(--danger);
+    }
+
+    /* ==========================================================================
+       EDITOR VIEW
+       ========================================================================== */
+    .editor-header {
+      position: sticky;
+      top: -24px;
+      background-color: var(--bg);
+      padding: 8px 0 16px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 5;
+      margin-bottom: 20px;
+    }
+
+    .editor-tab-nav {
+      display: flex;
+      gap: 4px;
+      background-color: var(--surface);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: 6px 16px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-weight: 550;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--fg);
+    }
+
+    .tab-btn.active {
+      background-color: var(--bg);
+      color: var(--fg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Form Fields Styling */
+    .form-section {
+      margin-bottom: 24px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .form-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fg);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group-full {
+      grid-column: span 2;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 550;
+      color: var(--muted);
+    }
+
+    .form-input {
+      height: 36px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0 12px;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 13px;
+    }
+
+    .checkbox-input {
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background-color: var(--bg);
+      accent-color: var(--accent);
+    }
+
+    /* Custom Table for Applications */
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+    }
+
+    .app-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    .app-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .app-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* JSON Editor View */
+    .json-editor-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 480px;
+    }
+
+    .json-textarea {
+      flex: 1;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      resize: none;
+    }
+
+    .json-textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .validation-bar {
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 550;
+      gap: 8px;
+    }
+
+    .validation-success {
+      background-color: var(--success-dim);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+
+    .validation-error {
+      background-color: var(--danger-dim);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+
+    /* ==========================================================================
+       CAPTURE ASSISTANT
+       ========================================================================== */
+    .capture-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .window-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      transition: border-color 0.15s;
+    }
+
+    .window-item:hover {
+      border-color: var(--border-focus);
+    }
+
+    .window-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .window-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .window-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .window-title {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .window-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .window-score-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .confidence-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ==========================================================================
+       TERMINAL / LOG SIMULATOR
+       ========================================================================== */
+    .terminal-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(10, 10, 12, 0.95);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-mono);
+      color: #a9b1d6;
+    }
+
+    .terminal-header {
+      height: 40px;
+      background-color: #1a1b26;
+      border-bottom: 1px solid #24283b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .terminal-title {
+      font-size: 12px;
+      color: #9ece6a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .terminal-log-line {
+      display: flex;
+      gap: 12px;
+    }
+
+    .log-timestamp {
+      color: #565f89;
+      user-select: none;
+    }
+
+    .log-info { color: #7aa2f7; }
+    .log-success { color: #9ece6a; }
+    .log-warning { color: #e0af68; }
+    .log-error { color: #f7768e; }
+    
+    .terminal-footer {
+      height: 56px;
+      background-color: #1a1b26;
+      border-top: 1px solid #24283b;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    /* UI Tweak Switch for layout variants */
+    .tweak-panel {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      z-index: 50;
+      font-size: 11px;
+    }
+
+    .tweak-btn {
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 550;
+    }
+
+    .tweak-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    /* Modal / Overlay */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(10, 10, 12, 0.8);
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-card {
+      width: 480px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+  </style>
+
+  <!-- React Core & Babel for Inline JSX -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div id="root"></div>
+
+  <!-- JSX Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Default Seed Data for Session Profiles
+    const initialProfiles = [
+      {
+        session_id: "dev-maestro",
+        name: "Desenvolvimento Maestro",
+        pinned: true,
+        applications: [
+          { executable: "code", args: ".", cwd: "~/projects/maestro", skip_if_running: true },
+          { executable: "alacritty", args: "--title 'Maestro CLI' -e cargo run", cwd: "~/projects/maestro", skip_if_running: false },
+          { executable: "figma", args: "--open-file design-spec", cwd: "", skip_if_running: true }
+        ],
+        browser: {
+          family: "chromium_like",
+          profile: "DevProfile",
+          urls: ["http://localhost:5173", "https://github.com/tauri-apps/tauri"]
+        }
+      },
+      {
+        session_id: "estudo-rust",
+        name: "Estudo Rust",
+        pinned: true,
+        applications: [
+          { executable: "evince", args: "~/documents/rust-book.pdf", cwd: "", skip_if_running: true },
+          { executable: "vscode", args: "~/projects/rust-exercises", cwd: "", skip_if_running: true }
+        ],
+        browser: {
+          family: "firefox",
+          profile: "Academic",
+          urls: ["https://doc.rust-lang.org/book/"]
+        }
+      },
+      {
+        session_id: "lazer-musica",
+        name: "Lazer & Playlist",
+        pinned: false,
+        applications: [
+          { executable: "spotify", args: "--minimized", cwd: "", skip_if_running: true },
+          { executable: "discord", args: "", cwd: "", skip_if_running: true }
+        ],
+        browser: null
+      },
+      {
+        session_id: "invalid-temp",
+        name: "Perfil WIP (Inválido)",
+        pinned: false,
+        applications: [
+          { executable: "", args: "", cwd: "", skip_if_running: false }
+        ],
+        browser: null,
+        invalid: true,
+        error_message: "Erro: 'executable' não pode estar vazio"
+      }
+    ];
+
+    // Capture Assistant Process Simulator Data
+    const captureData = [
+      { id: 1, title: "VS Code - main.rs - maestro", path: "/usr/bin/code", confidence: "98%", score: "alta", type: "app", workspace: "Workspace 1 (Dev)" },
+      { id: 2, title: "maestro-term (cargo run)", path: "/usr/bin/alacritty", confidence: "95%", score: "alta", type: "app", workspace: "Workspace 1 (Dev)" },
+      { id: 3, title: "Spotify Premium", path: "/snap/bin/spotify", confidence: "90%", score: "alta", type: "app", workspace: "Workspace 2 (Lazer)" },
+      { id: 4, title: "Discord - #geral", path: "/var/lib/flatpak/app/com.discordapp.Discord", confidence: "85%", score: "media", type: "app", workspace: "Workspace 2 (Lazer)" },
+      { id: 5, title: "Google Chrome - Github Maestro Repo", path: "/usr/bin/google-chrome-stable", confidence: "99%", score: "alta", type: "browser", workspace: "Workspace 3 (Browser)" },
+      { id: 6, title: "node --watch index.js", path: "/usr/bin/node", confidence: "35%", score: "baixa", type: "process", workspace: "Background" },
+      { id: 7, title: "chromium-sandbox --type=utility", path: "/usr/lib/chromium/chromium", confidence: "15%", score: "baixa", type: "process", workspace: "Background" }
+    ];
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "dark",
+      "visualMode": "gnome"
+    }/*EDITMODE-END*/;
+
+    function MaestroApp() {
+      // States
+      const [profiles, setProfiles] = useState(initialProfiles);
+      const [currentView, setCurrentView] = useState("hub"); // hub, editor, capture, settings
+      const [searchQuery, setSearchQuery] = useState("");
+      const [selectedProfile, setSelectedProfile] = useState(null); // for editing
+      const [activeSession, setActiveSession] = useState("Nenhuma");
+      const [isTrayOpen, setIsTrayOpen] = useState(false);
+      const [themeMode, setThemeMode] = useState(TWEAK_DEFAULTS.theme);
+      
+      // Editor specific states
+      const [editorTab, setEditorTab] = useState("conteudo"); // conteudo, captura, avancado
+      const [editName, setEditName] = useState("");
+      const [editId, setEditId] = useState("");
+      const [editApps, setEditApps] = useState([]);
+      const [editBrowser, setEditBrowser] = useState({ family: "chromium_like", profile: "", urls: [""] });
+      const [editHasBrowser, setEditHasBrowser] = useState(false);
+      const [editJsonStr, setEditJsonStr] = useState("");
+      const [jsonValid, setJsonValid] = useState(true);
+      
+      // Capture Assistant states
+      const [showProcesses, setShowProcesses] = useState(false);
+      const [captureSearch, setCaptureSearch] = useState("");
+      const [selectedWindows, setSelectedWindows] = useState([]);
+
+      // Terminal / Execution simulation states
+      const [terminalActive, setTerminalActive] = useState(false);
+      const [terminalLogs, setTerminalLogs] = useState([]);
+      const [dryRunMode, setDryRunMode] = useState(false);
+      
+      // Overflow actions menu visibility
+      const [activeOverflowId, setActiveOverflowId] = useState(null);
+
+      // Import/Export States
+      const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+      const [importJsonStr, setImportJsonStr] = useState("");
+      const [importError, setImportError] = useState(null);
+      const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+      const [exportProfileData, setExportProfileData] = useState(null);
+
+      // System Settings State
+      const [profilePath, setProfilePath] = useState("~/.config/maestro/profiles");
+      const [defaultBrowser, setDefaultBrowser] = useState("google-chrome");
+
+      // Handle Theme Updates
+      useEffect(() => {
+        const bodyEl = document.body;
+        if (themeMode === "light") {
+          bodyEl.classList.add("light-mode");
+        } else {
+          bodyEl.classList.remove("light-mode");
+        }
+      }, [themeMode]);
+
+      // JSON parsing listener
+      useEffect(() => {
+        if (currentView === "editor" && editorTab === "avancado") {
+          try {
+            const parsed = JSON.parse(editJsonStr);
+            setJsonValid(true);
+          } catch (e) {
+            setJsonValid(false);
+          }
+        }
+      }, [editJsonStr, currentView, editorTab]);
+
+      // Navigation helpers
+      const navigateTo = (view) => {
+        setCurrentView(view);
+        setIsTrayOpen(false);
+        setActiveOverflowId(null);
+      };
+
+      // CRUD Actions
+      const handleCreateNew = () => {
+        setSelectedProfile(null);
+        setEditName("Nova Sessão");
+        setEditId("nova-sessao");
+        setEditApps([{ executable: "", args: "", cwd: "", skip_if_running: true }]);
+        setEditBrowser({ family: "chromium_like", profile: "", urls: [""] });
+        setEditHasBrowser(false);
+        setEditorTab("conteudo");
+        navigateTo("editor");
+      };
+
+      const handleEditProfile = (profile) => {
+        setSelectedProfile(profile);
+        setEditName(profile.name);
+        setEditId(profile.session_id);
+        setEditApps([...profile.applications]);
+        if (profile.browser) {
+          setEditBrowser({
+            family: profile.browser.family,
+            profile: profile.browser.profile || "",
+            urls: [...profile.browser.urls]
+          });
+          setEditHasBrowser(true);
+        } else {
+          setEditBrowser({ family: "chromium_like", profile: "", urls: [""] });
+          setEditHasBrowser(false);
+        }
+        
+        // Populate JSON string for Advanced tab
+        const cleanProfile = { ...profile };
+        delete cleanProfile.pinned;
+        delete cleanProfile.invalid;
+        delete cleanProfile.error_message;
+        setEditJsonStr(JSON.stringify(cleanProfile, null, 2));
+
+        setEditorTab("conteudo");
+        navigateTo("editor");
+      };
+
+      const handleSaveProfile = () => {
+        let updatedProfile;
+        
+        if (editorTab === "avancado") {
+          if (!jsonValid) return;
+          try {
+            const parsed = JSON.parse(editJsonStr);
+            updatedProfile = {
+              ...parsed,
+              pinned: selectedProfile ? selectedProfile.pinned : false
+            };
+          } catch (e) {
+            return;
+          }
+        } else {
+          // Verify app inputs
+          const cleanApps = editApps.filter(app => app.executable.trim() !== "");
+          const isInvalid = cleanApps.length === 0 && !editHasBrowser;
+
+          updatedProfile = {
+            session_id: editId || "custom-session",
+            name: editName || "Sessão Customizada",
+            pinned: selectedProfile ? selectedProfile.pinned : false,
+            applications: cleanApps,
+            browser: editHasBrowser ? {
+              family: editBrowser.family,
+              profile: editBrowser.profile,
+              urls: editBrowser.urls.filter(url => url.trim() !== "")
+            } : null
+          };
+
+          if (isInvalid) {
+            updatedProfile.invalid = true;
+            updatedProfile.error_message = "Erro: Adicione pelo menos uma aplicação ou URL de browser";
+          }
+        }
+
+        if (selectedProfile) {
+          // Edit
+          setProfiles(profiles.map(p => p.session_id === selectedProfile.session_id ? updatedProfile : p));
+        } else {
+          // Create
+          setProfiles([...profiles, updatedProfile]);
+        }
+        navigateTo("hub");
+      };
+
+      const handleDuplicate = (profile, e) => {
+        e.stopPropagation();
+        const duplicated = {
+          ...profile,
+          session_id: `${profile.session_id}-copy`,
+          name: `${profile.name} (Cópia)`,
+          pinned: false
+        };
+        setProfiles([...profiles, duplicated]);
+        setActiveOverflowId(null);
+      };
+
+      const handleDelete = (sessionId, e) => {
+        e.stopPropagation();
+        setProfiles(profiles.filter(p => p.session_id !== sessionId));
+        if (activeSession === sessionId) {
+          setActiveSession("Nenhuma");
+        }
+        setActiveOverflowId(null);
+      };
+
+      const handleTogglePin = (sessionId, e) => {
+        e.stopPropagation();
+        setProfiles(profiles.map(p => {
+          if (p.session_id === sessionId) {
+            return { ...p, pinned: !p.pinned };
+          }
+          return p;
+        }));
+      };
+
+      const handleExportProfile = (profile, e) => {
+        if (e) e.stopPropagation();
+        const cleanProfile = { ...profile };
+        delete cleanProfile.pinned;
+        delete cleanProfile.invalid;
+        delete cleanProfile.error_message;
+        setExportProfileData(cleanProfile);
+        setIsExportModalOpen(true);
+        setActiveOverflowId(null);
+      };
+
+      const handleImportProfile = () => {
+        try {
+          const parsed = JSON.parse(importJsonStr);
+          if (!parsed.session_id || !parsed.name) {
+            setImportError("O perfil JSON deve conter pelo menos 'session_id' e 'name'.");
+            return;
+          }
+          
+          if (parsed.applications && !Array.isArray(parsed.applications)) {
+            setImportError("O campo 'applications' deve ser uma lista (array).");
+            return;
+          }
+          
+          let finalSessionId = parsed.session_id;
+          let counter = 1;
+          while (profiles.some(p => p.session_id === finalSessionId)) {
+            finalSessionId = `${parsed.session_id}-${counter}`;
+            counter++;
+          }
+          
+          const newProfile = {
+            session_id: finalSessionId,
+            name: parsed.name,
+            pinned: parsed.pinned || false,
+            applications: parsed.applications || [],
+            browser: parsed.browser || null
+          };
+          
+          let invalid = false;
+          let error_message = "";
+          if (newProfile.applications.some(app => !app.executable || app.executable.trim() === "")) {
+            invalid = true;
+            error_message = "Erro: 'executable' não pode estar vazio nas aplicações";
+          }
+          if (newProfile.applications.length === 0 && !newProfile.browser) {
+            invalid = true;
+            error_message = "Erro: Adicione pelo menos uma aplicação ou URL de browser";
+          }
+          
+          if (invalid) {
+            newProfile.invalid = true;
+            newProfile.error_message = error_message;
+          }
+          
+          setProfiles([...profiles, newProfile]);
+          setIsImportModalOpen(false);
+          setImportJsonStr("");
+          setImportError(null);
+        } catch (e) {
+          setImportError("Sintaxe JSON inválida. Verifique o formato do texto.");
+        }
+      };
+
+      // Simulation Log Execution
+      const executeSession = (profile, dryRun = false) => {
+        setTerminalActive(true);
+        setDryRunMode(dryRun);
+        setTerminalLogs([]);
+        
+        const logs = [];
+        const addLog = (text, type = "info") => {
+          const timestamp = new Date().toLocaleTimeString();
+          logs.push({ text, type, timestamp });
+          setTerminalLogs([...logs]);
+        };
+
+        let step = 0;
+        const totalSteps = 4 + (profile.browser ? 1 : 0) + profile.applications.length;
+        
+        addLog(`Iniciando ativação do perfil: "${profile.name}" (${dryRun ? 'DRY-RUN / PREVIEW' : 'PROCESSO REAL'})`, "info");
+        
+        const interval = setInterval(() => {
+          step++;
+          if (step === 1) {
+            addLog("Validando integridade do perfil JSON...", "info");
+            if (profile.invalid) {
+              addLog(`Erro de validação: ${profile.error_message}`, "error");
+              addLog("Abortando inicialização.", "error");
+              clearInterval(interval);
+            } else {
+              addLog("Validação de integridade concluída com sucesso.", "success");
+            }
+          } 
+          else if (step === 2) {
+            addLog(`Verificando navegador padrão do sistema... Deteção: ${defaultBrowser}`, "info");
+          } 
+          else if (step === 3) {
+            if (profile.browser) {
+              const { family, profile: browserProf, urls } = profile.browser;
+              addLog(`Lançando navegador da família [${family}] - Perfil: ${browserProf || 'Padrão'}`, "info");
+              urls.forEach(url => {
+                addLog(`  -> Abrindo aba: ${url}`, "success");
+              });
+              if (!dryRun) {
+                // Simulate browser process spawn
+              }
+            } else {
+              addLog("Nenhum navegador configurado neste perfil. Pulando.", "info");
+            }
+          }
+          else if (step > 3 && step <= 3 + profile.applications.length) {
+            const appIdx = step - 4;
+            const app = profile.applications[appIdx];
+            
+            if (app.skip_if_running && app.executable === "code") {
+              addLog(`Processo '${app.executable}' já está rodando. Opção [skip_if_running] ativada. Lançamento ignorado.`, "warning");
+            } else {
+              addLog(`Spawn sequencial: executando '${app.executable}' ${app.args ? `com argumentos: ${app.args}` : ''}`, "info");
+              if (app.cwd) addLog(`  Trabalhando no diretório: ${app.cwd}`, "info");
+              addLog(`  [PID: ${Math.floor(Math.random() * 20000) + 1000}] Processo de '${app.executable}' iniciado.`, "success");
+            }
+          }
+          else {
+            addLog(`Perfil de sessão "${profile.name}" carregado.`, "success");
+            if (!dryRun) {
+              setActiveSession(profile.name);
+            }
+            clearInterval(interval);
+          }
+        }, 800);
+      };
+
+      // Filtered profiles for Hub
+      const filteredProfiles = profiles.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      const pinnedProfiles = filteredProfiles.filter(p => p.pinned);
+      const otherProfiles = filteredProfiles.filter(p => !p.pinned);
+
+      // App Field change listeners
+      const handleAppChange = (index, field, value) => {
+        const newApps = [...editApps];
+        newApps[index][field] = value;
+        setEditApps(newApps);
+      };
+
+      const addAppRow = () => {
+        setEditApps([...editApps, { executable: "", args: "", cwd: "", skip_if_running: true }]);
+      };
+
+      const removeAppRow = (index) => {
+        setEditApps(editApps.filter((_, i) => i !== index));
+      };
+
+      // Selection in Capture Assistant
+      const handleToggleWindowSelect = (item) => {
+        if (selectedWindows.some(w => w.id === item.id)) {
+          setSelectedWindows(selectedWindows.filter(w => w.id !== item.id));
+        } else {
+          setSelectedWindows([...selectedWindows, item]);
+        }
+      };
+
+      const handleAddCapturedToProfile = () => {
+        const newAppsFromCapture = selectedWindows.map(w => ({
+          executable: w.path.split("/").pop(),
+          args: "",
+          cwd: "",
+          skip_if_running: true
+        }));
+
+        setEditApps([...editApps, ...newAppsFromCapture]);
+        setSelectedWindows([]);
+        setEditorTab("conteudo");
+      };
+
+      return (
+        <div className="os-container">
+          
+          {/* Simulating Ubuntu/GNOME Style OS Bar */}
+          <div className="os-topbar" data-od-id="os-topbar">
+            <div className="os-topbar-left">
+              <span style={{ fontWeight: 650 }}>Aplicações</span>
+              <span style={{ color: "var(--muted)" }}>|</span>
+              <span>Maestro Launcher</span>
+            </div>
+            <div className="os-topbar-center" data-od-id="os-time">
+              Ter 14 Jul, 16:53
+            </div>
+            <div className="os-topbar-right">
+              <div 
+                className="tray-indicator" 
+                onClick={() => setIsTrayOpen(!isTrayOpen)}
+                data-od-id="tray-toggle"
+              >
+                <div className={`tray-dot ${activeSession !== "Nenhuma" ? 'active' : ''}`}></div>
+                <span>Maestro</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Tray menu panel dropdown */}
+          {isTrayOpen && (
+            <div className="tray-dropdown" data-od-id="tray-dropdown-menu">
+              <div className="tray-header">Perfis de Sessão</div>
+              {profiles.filter(p => !p.invalid).map(p => (
+                <div 
+                  key={p.session_id} 
+                  className="tray-item"
+                  onClick={() => {
+                    executeSession(p, false);
+                    setIsTrayOpen(false);
+                  }}
+                  data-od-id={`tray-item-${p.session_id}`}
+                >
+                  <div className="tray-item-info">
+                    <span className="tray-item-name">{p.name}</span>
+                    <span className="tray-item-desc">{p.applications.length} apps {p.browser ? '+ browser' : ''}</span>
+                  </div>
+                  {activeSession === p.name && (
+                    <span style={{ color: "var(--success)", fontSize: "11px", fontWeight: "bold" }}>Ativo</span>
+                  )}
+                </div>
+              ))}
+              <div style={{ height: "1px", backgroundColor: "var(--border)", margin: "4px 0" }}></div>
+              <div className="tray-item" onClick={() => navigateTo("hub")}>
+                <span>Abrir Hub Principal</span>
+              </div>
+            </div>
+          )}
+
+          {/* Maestro Application Main Frame Window */}
+          <div className="app-window" data-od-id="maestro-window">
+            
+            {/* Native Titlebar buttons */}
+            <div className="app-header" data-od-id="app-window-header">
+              <div className="window-controls">
+                <button className="win-btn win-close" onClick={() => navigateTo("hub")} title="Fechar"></button>
+                <button className="win-btn win-min" title="Minimizar"></button>
+                <button className="win-btn win-max" title="Maximizar"></button>
+              </div>
+              <div className="app-title-wrapper">
+                <svg className="app-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                <span className="app-title">Maestro — Gestor de Contextos</span>
+              </div>
+              <div className="window-actions">
+                <button 
+                  className="btn" 
+                  onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                  style={{ height: "28px", padding: "0 8px", fontSize: "11px" }}
+                  data-od-id="theme-toggle-btn"
+                >
+                  {themeMode === "dark" ? "Modo Claro" : "Modo Escuro"}
+                </button>
+              </div>
+            </div>
+
+            <div className="app-body">
+              
+              {/* Sidebar Navigation */}
+              <nav className="app-sidebar" data-od-id="sidebar-navigation">
+                <div className="nav-group">
+                  <div 
+                    className={`nav-item ${currentView === "hub" ? "active" : ""}`}
+                    onClick={() => navigateTo("hub")}
+                    data-od-id="nav-hub"
+                  >
+                    <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    <span>Sessões Hub</span>
+                  </div>
+                  
+                  <div 
+                    className={`nav-item ${currentView === "editor" ? "active" : ""}`}
+                    onClick={handleCreateNew}
+                    data-od-id="nav-editor"
+                  >
+                    <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Novo Perfil</span>
+                  </div>
+
+                  <div 
+                    className={`nav-item ${currentView === "capture" ? "active" : ""}`}
+                    onClick={() => navigateTo("capture")}
+                    data-od-id="nav-capture"
+                  >
+                    <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>Assistente de Janelas</span>
+                  </div>
+
+                  <div 
+                    className={`nav-item ${currentView === "settings" ? "active" : ""}`}
+                    onClick={() => navigateTo("settings")}
+                    data-od-id="nav-settings"
+                  >
+                    <svg className="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Configurações</span>
+                  </div>
+                </div>
+
+                <div className="sidebar-footer">
+                  <div className="current-session-widget" data-od-id="active-session-widget">
+                    <span className="widget-label">Sessão Atual</span>
+                    <div className="widget-status">
+                      <span className={`status-dot ${activeSession !== "Nenhuma" ? 'active' : ''}`}></span>
+                      <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        {activeSession}
+                      </span>
+                    </div>
+                    {activeSession !== "Nenhuma" && (
+                      <button 
+                        className="btn" 
+                        onClick={() => setActiveSession("Nenhuma")}
+                        style={{ height: "24px", fontSize: "10px", marginTop: "4px" }}
+                        data-od-id="deactivate-session-btn"
+                      >
+                        Encerrar
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--muted)", textAlign: "center" }}>
+                    Maestro v0.4.2 · Tauri + Linux
+                  </div>
+                </div>
+              </nav>
+
+              {/* Main App Content container */}
+              <main className="app-content">
+
+                {/* ==========================================
+                    VIEW: HUB / DASHBOARD
+                    ========================================== */}
+                {currentView === "hub" && (
+                  <div data-od-id="view-hub">
+                    <div className="view-title-group">
+                      <h1 className="view-title">Sessões Hub</h1>
+                      <p className="view-subtitle">Selecione, configure e ative perfis operacionais com um clique.</p>
+                    </div>
+
+                    <div className="hub-toolbar">
+                      <div className="search-input-wrapper">
+                        <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input 
+                          type="text" 
+                          placeholder="Pesquisar perfil..." 
+                          className="search-input" 
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          data-od-id="profile-search-bar"
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn" onClick={() => setIsImportModalOpen(true)} data-od-id="import-profile-btn">
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                          </svg>
+                          Importar Perfil
+                        </button>
+
+                        <button className="btn btn-primary" onClick={handleCreateNew} data-od-id="create-new-btn">
+                          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                          </svg>
+                          Criar Perfil
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Pinned Profiles */}
+                    {pinnedProfiles.length > 0 && (
+                      <div style={{ marginBottom: "24px" }} data-od-id="pinned-profiles-section">
+                        <h2 className="section-title">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+                          </svg>
+                          Fixadas
+                        </h2>
+                        <div className="profile-grid">
+                          {pinnedProfiles.map(p => (
+                            <ProfileCard 
+                              key={p.session_id} 
+                              profile={p}
+                              activeSession={activeSession}
+                              onEdit={handleEditProfile}
+                              onDuplicate={handleDuplicate}
+                              onDelete={handleDelete}
+                              onTogglePin={handleTogglePin}
+                              onExecute={executeSession}
+                              activeOverflowId={activeOverflowId}
+                              setActiveOverflowId={setActiveOverflowId}
+                              onExport={handleExportProfile}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* All Profiles */}
+                    <div data-od-id="all-profiles-section">
+                      <h2 className="section-title">Todos os Perfis ({otherProfiles.length + pinnedProfiles.length})</h2>
+                      {otherProfiles.length > 0 ? (
+                        <div className="profile-grid">
+                          {otherProfiles.map(p => (
+                            <ProfileCard 
+                              key={p.session_id} 
+                              profile={p}
+                              activeSession={activeSession}
+                              onEdit={handleEditProfile}
+                              onDuplicate={handleDuplicate}
+                              onDelete={handleDelete}
+                              onTogglePin={handleTogglePin}
+                              onExecute={executeSession}
+                              activeOverflowId={activeOverflowId}
+                              setActiveOverflowId={setActiveOverflowId}
+                              onExport={handleExportProfile}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        pinnedProfiles.length === 0 && (
+                          <div style={{ padding: "48px 0", textAlign: "center", color: "var(--muted)" }}>
+                            Nenhum perfil de sessão encontrado. Crie um novo perfil para começar.
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ==========================================
+                    VIEW: PROFILE EDITOR
+                    ========================================== */}
+                {currentView === "editor" && (
+                  <div data-od-id="view-editor">
+                    <div className="editor-header">
+                      <div className="view-title-group" style={{ marginBottom: 0 }}>
+                        <h1 className="view-title">{selectedProfile ? `Editar: ${editName}` : "Nova Sessão"}</h1>
+                        <p className="view-subtitle">Edite aplicações, diretórios de trabalho e URLs deste perfil.</p>
+                      </div>
+                      
+                      <div className="editor-tab-nav" data-od-id="editor-tabs">
+                        <button 
+                          className={`tab-btn ${editorTab === "conteudo" ? "active" : ""}`}
+                          onClick={() => setEditorTab("conteudo")}
+                        >
+                          Conteúdo
+                        </button>
+                        <button 
+                          className={`tab-btn ${editorTab === "captura" ? "active" : ""}`}
+                          onClick={() => setEditorTab("captura")}
+                        >
+                          Capturar Assistente
+                        </button>
+                        <button 
+                          className={`tab-btn ${editorTab === "avancado" ? "active" : ""}`}
+                          onClick={() => setEditorTab("avancado")}
+                        >
+                          Avançado (JSON)
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button className="btn" onClick={() => navigateTo("hub")} data-od-id="editor-cancel-btn">Cancelar</button>
+                        <button className="btn btn-primary" onClick={handleSaveProfile} data-od-id="editor-save-btn">Salvar Perfil</button>
+                      </div>
+                    </div>
+
+                    {/* Tab: Content Structure */}
+                    {editorTab === "conteudo" && (
+                      <div data-od-id="editor-content-tab">
+                        <div className="form-section">
+                          <h3 className="form-section-title">Dados Gerais</h3>
+                          <div className="form-grid">
+                            <div className="form-group">
+                              <label className="form-label">Nome da Sessão</label>
+                              <input 
+                                type="text" 
+                                className="form-input" 
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="ex. Desenvolvimento Web"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">ID Único (Session ID)</label>
+                              <input 
+                                type="text" 
+                                className="form-input" 
+                                value={editId}
+                                onChange={(e) => setEditId(e.target.value)}
+                                placeholder="ex. dev-web"
+                                disabled={selectedProfile !== null}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Executables application table */}
+                        <div className="form-section">
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "center" }}>
+                            <h3 className="form-section-title" style={{ marginBottom: 0, borderBottom: "none", paddingBottom: 0 }}>Aplicações Sequenciais</h3>
+                            <button className="btn" onClick={addAppRow} style={{ height: "28px", fontSize: "12px" }}>
+                              + Adicionar Aplicação
+                            </button>
+                          </div>
+                          
+                          <table className="app-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: "30%" }}>Executável / Atalho</th>
+                                <th style={{ width: "35%" }}>Argumentos</th>
+                                <th style={{ width: "20%" }}>Caminho de Execução (CWD)</th>
+                                <th style={{ width: "10%", textAlign: "center" }}>Ignorar se Rodando</th>
+                                <th style={{ width: "5%" }}></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {editApps.map((app, index) => (
+                                <tr key={index}>
+                                  <td>
+                                    <input 
+                                      type="text" 
+                                      className="form-input" 
+                                      style={{ width: "100%" }}
+                                      value={app.executable} 
+                                      onChange={(e) => handleAppChange(index, "executable", e.target.value)}
+                                      placeholder="ex. code ou firefox"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input 
+                                      type="text" 
+                                      className="form-input" 
+                                      style={{ width: "100%" }}
+                                      value={app.args} 
+                                      onChange={(e) => handleAppChange(index, "args", e.target.value)}
+                                      placeholder="ex. . ou --new-window"
+                                    />
+                                  </td>
+                                  <td>
+                                    <input 
+                                      type="text" 
+                                      className="form-input" 
+                                      style={{ width: "100%" }}
+                                      value={app.cwd} 
+                                      onChange={(e) => handleAppChange(index, "cwd", e.target.value)}
+                                      placeholder="ex. ~/projetos"
+                                    />
+                                  </td>
+                                  <td style={{ textAlign: "center" }}>
+                                    <input 
+                                      type="checkbox" 
+                                      className="checkbox-input"
+                                      checked={app.skip_if_running} 
+                                      onChange={(e) => handleAppChange(index, "skip_if_running", e.target.checked)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <button 
+                                      className="card-btn" 
+                                      style={{ color: "var(--danger)", borderColor: "transparent" }}
+                                      onClick={() => removeAppRow(index)}
+                                    >
+                                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Browser launch configuration */}
+                        <div className="form-section">
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "16px" }}>
+                            <input 
+                              type="checkbox" 
+                              id="toggle-browser"
+                              className="checkbox-input"
+                              checked={editHasBrowser}
+                              onChange={(e) => setEditHasBrowser(e.target.checked)}
+                            />
+                            <label htmlFor="toggle-browser" className="checkbox-label" style={{ fontWeight: 600 }}>Lançar Navegador Isolado nesta Sessão</label>
+                          </div>
+
+                          {editHasBrowser && (
+                            <div className="form-grid">
+                              <div className="form-group">
+                                <label className="form-label">Família do Browser</label>
+                                <select 
+                                  className="form-input"
+                                  value={editBrowser.family}
+                                  onChange={(e) => setEditBrowser({ ...editBrowser, family: e.target.value })}
+                                >
+                                  <option value="chromium_like">Chromium (Chrome, Brave, Edge)</option>
+                                  <option value="firefox">Firefox (Gecko)</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Nome do Perfil de Isolamento</label>
+                                <input 
+                                  type="text" 
+                                  className="form-input" 
+                                  placeholder="ex. DevSession"
+                                  value={editBrowser.profile}
+                                  onChange={(e) => setEditBrowser({ ...editBrowser, profile: e.target.value })}
+                                />
+                              </div>
+                              <div className="form-group form-group-full">
+                                <label className="form-label">URLs para abrir (uma por linha)</label>
+                                <textarea 
+                                  className="json-textarea" 
+                                  style={{ height: "80px" }}
+                                  placeholder="http://localhost:3000&#10;https://github.com"
+                                  value={editBrowser.urls.join("\n")}
+                                  onChange={(e) => setEditBrowser({ ...editBrowser, urls: e.target.value.split("\n") })}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Embedded Capture Assistant */}
+                    {editorTab === "captura" && (
+                      <div data-od-id="editor-capture-tab">
+                        <div style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "20px" }}>
+                          <div style={{ marginBottom: "16px" }}>
+                            <h3 style={{ fontSize: "15px", fontWeight: "600", marginBottom: "4px" }}>Inserir Aplicações Ativas via Captura</h3>
+                            <p style={{ fontSize: "12px", color: "var(--muted)" }}>Selecione as janelas que deseja anexar a este perfil.</p>
+                          </div>
+                          
+                          <CaptureSelector 
+                            showProcesses={showProcesses} 
+                            setShowProcesses={setShowProcesses}
+                            captureSearch={captureSearch}
+                            setCaptureSearch={setCaptureSearch}
+                            selectedWindows={selectedWindows}
+                            onToggleSelect={handleToggleWindowSelect}
+                          />
+
+                          <div style={{ marginTop: "16px", display: "flex", justifyContent: "flex-end" }}>
+                            <button 
+                              className="btn btn-primary" 
+                              onClick={handleAddCapturedToProfile}
+                              disabled={selectedWindows.length === 0}
+                              data-od-id="add-captured-btn"
+                            >
+                              Adicionar Selecionados ({selectedWindows.length})
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Advanced JSON */}
+                    {editorTab === "avancado" && (
+                      <div className="json-editor-container" data-od-id="editor-advanced-tab">
+                        <textarea 
+                          className="json-textarea"
+                          value={editJsonStr}
+                          onChange={(e) => setEditJsonStr(e.target.value)}
+                        />
+                        
+                        <div className={`validation-bar ${jsonValid ? "validation-success" : "validation-error"}`}>
+                          <div className="status-dot" style={{ backgroundColor: jsonValid ? "var(--success)" : "var(--danger)" }}></div>
+                          <span>
+                            {jsonValid ? "Estrutura JSON do Perfil Válida" : "Erro de sintaxe JSON. Por favor revise as chaves e aspas."}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ==========================================
+                    VIEW: STANDALONE CAPTURE ASSISTANT
+                    ========================================== */}
+                {currentView === "capture" && (
+                  <div data-od-id="view-capture">
+                    <div className="view-title-group">
+                      <h1 className="view-title">Assistente de Captura de Sessão</h1>
+                      <p className="view-subtitle">Descubra aplicações e janelas ativas em tempo real e crie perfis instantâneos.</p>
+                    </div>
+
+                    <div style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: "20px" }}>
+                      <CaptureSelector 
+                        showProcesses={showProcesses} 
+                        setShowProcesses={setShowProcesses}
+                        captureSearch={captureSearch}
+                        setCaptureSearch={setCaptureSearch}
+                        selectedWindows={selectedWindows}
+                        onToggleSelect={handleToggleWindowSelect}
+                      />
+                      
+                      {selectedWindows.length > 0 && (
+                        <div style={{ marginTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: "16px" }}>
+                          <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+                            {selectedWindows.length} aplicação(ões) selecionada(s).
+                          </span>
+                          <button 
+                            className="btn btn-primary"
+                            onClick={() => {
+                              // Create profile from selected
+                              setEditName("Nova Sessão Capturada");
+                              setEditId("sessao-capturada");
+                              setEditApps(selectedWindows.map(w => ({
+                                executable: w.path.split("/").pop(),
+                                args: "",
+                                cwd: "",
+                                skip_if_running: true
+                              })));
+                              setEditBrowser({ family: "chromium_like", profile: "", urls: [""] });
+                              setEditHasBrowser(false);
+                              setSelectedWindows([]);
+                              navigateTo("editor");
+                            }}
+                            data-od-id="create-from-capture-btn"
+                          >
+                            Criar Perfil com Selecionados
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ==========================================
+                    VIEW: SETTINGS
+                    ========================================== */}
+                {currentView === "settings" && (
+                  <div data-od-id="view-settings">
+                    <div className="view-title-group">
+                      <h1 className="view-title">Configurações Gerais</h1>
+                      <p className="view-subtitle">Personalize os caminhos padrão, mecanismos do sistema e depuração.</p>
+                    </div>
+
+                    <div className="form-section">
+                      <h3 className="form-section-title">Diretórios & Perfis</h3>
+                      <div className="form-grid">
+                        <div className="form-group form-group-full">
+                          <label className="form-label">Caminho de Armazenamento JSON</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            value={profilePath} 
+                            onChange={(e) => setProfilePath(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Browser Padrão do Sistema</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            value={defaultBrowser} 
+                            onChange={(e) => setDefaultBrowser(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Verbosidade do Log de Ativação</label>
+                          <select className="form-input">
+                            <option>Info (Padrão)</option>
+                            <option>Debug (Completo)</option>
+                            <option>Erros Apenas</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-section">
+                      <h3 className="form-section-title">Assistente de Captura</h3>
+                      <div className="form-group" style={{ gap: "12px" }}>
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <input type="checkbox" id="sett-wm" className="checkbox-input" defaultChecked />
+                          <label htmlFor="sett-wm" className="checkbox-label">Window-first discovery em X11 (via wmctrl)</label>
+                        </div>
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <input type="checkbox" id="sett-way" className="checkbox-input" defaultChecked />
+                          <label htmlFor="sett-way" className="checkbox-label">Fallback automático para processos no Wayland</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </main>
+            </div>
+
+            {/* ==========================================================================
+                TERMINAL LOGGER / DRY-RUN OUTPUT OVERLAY
+                ========================================================================== */}
+            {terminalActive && (
+              <div className="terminal-overlay" data-od-id="activation-terminal-overlay">
+                <div className="terminal-header">
+                  <div className="terminal-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M4 17l6-6-6-6M12 19h10"/>
+                    </svg>
+                    <span>Terminal Maestro — {dryRunMode ? 'Simulação de Dry-Run' : 'Carregando Sessão'}</span>
+                  </div>
+                  <div style={{ color: "var(--muted)", fontSize: "11px" }}>[Esc para fechar]</div>
+                </div>
+
+                <div className="terminal-body">
+                  {terminalLogs.map((log, index) => (
+                    <div key={index} className="terminal-log-line">
+                      <span className="log-timestamp">[{log.timestamp}]</span>
+                      <span className={`log-${log.type}`}>{log.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="terminal-footer">
+                  <button className="btn" onClick={() => setTerminalActive(false)} data-od-id="close-terminal-btn">
+                    Fechar
+                  </button>
+                  {!dryRunMode && (
+                    <button className="btn btn-primary" onClick={() => setTerminalActive(false)} data-od-id="open-log-btn">
+                      Abrir Arquivo de Log
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ==========================================================================
+                IMPORT / EXPORT MODALS
+                ========================================================================== */}
+            {isImportModalOpen && (
+              <div className="modal-overlay" onClick={() => { setIsImportModalOpen(false); setImportError(null); setImportJsonStr(""); }} data-od-id="import-modal-overlay">
+                <div className="modal-card" onClick={(e) => e.stopPropagation()} data-od-id="import-modal-card">
+                  <div className="modal-header">
+                    <h3 className="modal-title">Importar Perfil de Sessão</h3>
+                    <button className="win-btn win-close" onClick={() => { setIsImportModalOpen(false); setImportError(null); setImportJsonStr(""); }} title="Fechar"></button>
+                  </div>
+                  <div className="modal-body">
+                    <p className="view-subtitle" style={{ marginBottom: "8px" }}>
+                      Cole o conteúdo JSON do seu perfil ou carregue um arquivo.
+                    </p>
+                    
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                      <input 
+                        type="file" 
+                        accept=".json"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setImportJsonStr(event.target.result);
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="import-file-input"
+                      />
+                      <button 
+                        className="btn" 
+                        onClick={() => document.getElementById('import-file-input').click()}
+                        style={{ flex: 1 }}
+                      >
+                        Selecionar Arquivo .json
+                      </button>
+                    </div>
+                    
+                    <textarea 
+                      className="json-textarea" 
+                      placeholder={`{\n  "session_id": "dev-custom",\n  "name": "Meu Perfil Customizado",\n  "applications": [\n    { "executable": "code", "args": "." }\n  ]\n}`}
+                      value={importJsonStr}
+                      onChange={(e) => setImportJsonStr(e.target.value)}
+                      style={{ height: "200px" }}
+                    />
+                    
+                    {importError && (
+                      <div className="validation-bar validation-error">
+                        <div className="status-dot" style={{ backgroundColor: "var(--danger)" }}></div>
+                        <span>{importError}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button 
+                      className="btn" 
+                      onClick={() => { setIsImportModalOpen(false); setImportError(null); setImportJsonStr(""); }}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={handleImportProfile}
+                      data-od-id="btn-confirm-import"
+                    >
+                      Validar e Importar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isExportModalOpen && exportProfileData && (
+              <div className="modal-overlay" onClick={() => setIsExportModalOpen(false)} data-od-id="export-modal-overlay">
+                <div className="modal-card" onClick={(e) => e.stopPropagation()} data-od-id="export-modal-card">
+                  <div className="modal-header">
+                    <h3 className="modal-title">Exportar Perfil: {exportProfileData.name}</h3>
+                    <button className="win-btn win-close" onClick={() => setIsExportModalOpen(false)} title="Fechar"></button>
+                  </div>
+                  <div className="modal-body">
+                    <p className="view-subtitle" style={{ marginBottom: "8px" }}>
+                      Copie o JSON abaixo ou salve como um arquivo de configuração <code>.json</code>.
+                    </p>
+                    <textarea 
+                      className="json-textarea" 
+                      readOnly 
+                      value={JSON.stringify(exportProfileData, null, 2)}
+                      style={{ height: "240px" }}
+                    />
+                  </div>
+                  <div className="modal-footer">
+                    <button 
+                      className="btn" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(exportProfileData, null, 2));
+                      }}
+                      data-od-id="btn-copy-json"
+                    >
+                      Copiar JSON
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportProfileData, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href",     dataStr);
+                        downloadAnchor.setAttribute("download",  `${exportProfileData.session_id}.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                        setIsExportModalOpen(false);
+                      }}
+                      data-od-id="btn-download-json"
+                    >
+                      Baixar Arquivo .json
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Design system layout quick adjustment selector */}
+          <div className="tweak-panel" data-od-id="designer-tweaks-panel">
+            <span style={{ color: "var(--muted)", fontWeight: "bold" }}>Aparência:</span>
+            <button 
+              className={`tweak-btn ${themeMode === 'dark' ? 'active' : ''}`}
+              onClick={() => setThemeMode('dark')}
+            >
+              Dark
+            </button>
+            <button 
+              className={`tweak-btn ${themeMode === 'light' ? 'active' : ''}`}
+              onClick={() => setThemeMode('light')}
+            >
+              Light
+            </button>
+          </div>
+
+        </div>
+      );
+    }
+
+    // Helper Component: Profile Cards inside Hub
+    function ProfileCard({ 
+      profile, 
+      activeSession, 
+      onEdit, 
+      onDuplicate, 
+      onDelete, 
+      onTogglePin, 
+      onExecute,
+      activeOverflowId,
+      setActiveOverflowId,
+      onExport
+    }) {
+      
+      const totalApps = profile.applications ? profile.applications.length : 0;
+      const isBrowser = profile.browser !== null && profile.browser !== undefined;
+
+      const toggleMenu = (e) => {
+        e.stopPropagation();
+        if (activeOverflowId === profile.session_id) {
+          setActiveOverflowId(null);
+        } else {
+          setActiveOverflowId(profile.session_id);
+        }
+      };
+
+      return (
+        <div 
+          className="profile-card" 
+          onClick={() => !profile.invalid && onExecute(profile, false)}
+          data-od-id={`profile-card-${profile.session_id}`}
+        >
+          <div className="card-top">
+            <div className="card-title-group">
+              <span className="card-name">{profile.name}</span>
+              <span className="card-id">{profile.session_id}</span>
+            </div>
+            
+            <button 
+              className={`card-btn ${profile.pinned ? 'card-btn-active' : ''}`}
+              onClick={(e) => onTogglePin(profile.session_id, e)}
+              title={profile.pinned ? "Desafixar" : "Fixar"}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill={profile.pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+              </svg>
+            </button>
+          </div>
+
+          <div className="card-badges">
+            {profile.invalid ? (
+              <span className="badge badge-danger">Perfil Inválido</span>
+            ) : (
+              <React.Fragment>
+                <span className="badge badge-accent">{totalApps} Apps</span>
+                {isBrowser && (
+                  <span className="badge badge-gray">Browser ({profile.browser.family === 'firefox' ? 'Firefox' : 'Chromium'})</span>
+                )}
+                {profile.applications.some(app => app.skip_if_running) && (
+                  <span className="badge badge-warning">Safe-Skip</span>
+                )}
+              </React.Fragment>
+            )}
+          </div>
+
+          <div className="card-actions">
+            {activeSession === profile.name ? (
+              <span style={{ color: "var(--success)", fontSize: "12px", fontWeight: "bold" }}>Ativo Agora</span>
+            ) : (
+              <span style={{ fontSize: "11px", color: "var(--muted)" }}>Clique para ativar</span>
+            )}
+            
+            <div className="card-action-btns">
+              <button 
+                className="card-btn" 
+                onClick={(e) => { e.stopPropagation(); onEdit(profile); }}
+                title="Editar Perfil"
+              >
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              
+              <div className="overflow-menu-wrapper">
+                <button 
+                  className="card-btn" 
+                  onClick={toggleMenu}
+                  title="Mais Ações"
+                >
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+
+                {activeOverflowId === profile.session_id && (
+                  <div className="overflow-menu" data-od-id={`card-menu-${profile.session_id}`}>
+                    <button className="overflow-menu-item" onClick={(e) => { e.stopPropagation(); onExecute(profile, true); setActiveOverflowId(null); }}>
+                      <span>Visualizar Dry-run</span>
+                    </button>
+                    <button className="overflow-menu-item" onClick={(e) => onDuplicate(profile, e)}>
+                      <span>Duplicar Perfil</span>
+                    </button>
+                    <button className="overflow-menu-item" onClick={(e) => onExport(profile, e)}>
+                      <span>Exportar Perfil (JSON)</span>
+                    </button>
+                    <button className="overflow-menu-item danger" onClick={(e) => onDelete(profile.session_id, e)}>
+                      <span>Excluir Perfil</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Helper Component: Capture Selector
+    function CaptureSelector({ 
+      showProcesses, 
+      setShowProcesses, 
+      captureSearch, 
+      setCaptureSearch, 
+      selectedWindows, 
+      onToggleSelect 
+    }) {
+      
+      const filteredCapture = captureData.filter(item => {
+        // Filter out processes if "showProcesses" is off
+        if (!showProcesses && item.type === "process") return false;
+        
+        // Match Search Query
+        return item.title.toLowerCase().includes(captureSearch.toLowerCase()) || 
+               item.path.toLowerCase().includes(captureSearch.toLowerCase());
+      });
+
+      // Group filtered capture items by workspace
+      const groupedCapture = filteredCapture.reduce((acc, item) => {
+        const ws = item.workspace || "Sem Workspace";
+        if (!acc[ws]) {
+          acc[ws] = [];
+        }
+        acc[ws].push(item);
+        return acc;
+      }, {});
+
+      return (
+        <div data-od-id="capture-window-selector">
+          <div className="capture-toolbar">
+            <div className="search-input-wrapper">
+              <svg className="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Filtrar processos..." 
+                className="search-input"
+                value={captureSearch}
+                onChange={(e) => setCaptureSearch(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <input 
+                type="checkbox" 
+                id="show-proc"
+                className="checkbox-input"
+                checked={showProcesses}
+                onChange={(e) => setShowProcesses(e.target.checked)}
+              />
+              <label htmlFor="show-proc" className="checkbox-label">Mostrar processos de segundo plano</label>
+            </div>
+          </div>
+
+          <div style={{ maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "16px" }}>
+            {Object.keys(groupedCapture).length === 0 ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>
+                Nenhuma aplicação ou processo encontrado.
+              </div>
+            ) : (
+              Object.keys(groupedCapture).map(wsName => (
+                <div key={wsName} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: "var(--muted)",
+                    padding: "4px 8px",
+                    borderBottom: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}>
+                    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" style={{ color: "var(--accent)" }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span>{wsName}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {groupedCapture[wsName].map(item => {
+                      const isChecked = selectedWindows.some(w => w.id === item.id);
+                      return (
+                        <div key={item.id} className="window-item" style={{ marginBottom: 0 }} data-od-id={`window-item-${item.id}`}>
+                          <div className="window-main">
+                            <input 
+                              type="checkbox" 
+                              className="window-checkbox checkbox-input"
+                              checked={isChecked}
+                              onChange={() => onToggleSelect(item)}
+                            />
+                            <div className="window-details">
+                              <span className="window-title">{item.title}</span>
+                              <span className="window-meta">
+                                <span>Caminho: <code style={{ fontFamily: "var(--font-mono)", fontSize: "11px" }}>{item.path}</code></span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Render application
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<MaestroApp />);
+  </script>
+</body>
+</html>

@@ -40,6 +40,9 @@ pub fn entry_skip_detail(entry: &ApplicationLaunchEntry, running: &HashSet<Strin
     if !matches!(entry.skip_if_running, Some(true)) {
         return None;
     }
+    if editor_should_relaunch_with_target(entry) {
+        return None;
+    }
     let b = executable_basename(&entry.executable);
     if running.contains(&b) {
         Some(format!(
@@ -48,6 +51,18 @@ pub fn entry_skip_detail(entry: &ApplicationLaunchEntry, running: &HashSet<Strin
     } else {
         None
     }
+}
+
+fn editor_should_relaunch_with_target(entry: &ApplicationLaunchEntry) -> bool {
+    const EDITORS: &[&str] = &["cursor", "code", "code-oss", "codium", "obsidian"];
+    let base = executable_basename(&entry.executable);
+    if !EDITORS.contains(&base.as_str()) {
+        return false;
+    }
+    entry.args.iter().any(|arg| {
+        let arg = arg.trim();
+        !arg.starts_with('-') && Path::new(arg).is_absolute()
+    })
 }
 
 #[cfg(test)]
@@ -71,11 +86,29 @@ mod tests {
             args: vec![],
             cwd: None,
             skip_if_running: Some(true),
+            browser: None,
         };
         let mut set = HashSet::new();
         set.insert("sh".into());
         let d = entry_skip_detail(&entry, &set).expect("skip");
         assert!(d.contains("sh"));
+    }
+
+    #[test]
+    fn no_skip_editor_with_folder_target_when_running() {
+        let entry = ApplicationLaunchEntry {
+            executable: "/usr/share/cursor/cursor".into(),
+            args: vec![
+                "--reuse-window".into(),
+                "/home/user/openspectutorial".into(),
+            ],
+            cwd: Some("/home/user/openspectutorial".into()),
+            skip_if_running: Some(true),
+            browser: None,
+        };
+        let mut set = HashSet::new();
+        set.insert("cursor".into());
+        assert!(entry_skip_detail(&entry, &set).is_none());
     }
 
     #[test]
@@ -85,6 +118,7 @@ mod tests {
             args: vec![],
             cwd: None,
             skip_if_running: None,
+            browser: None,
         };
         let mut set = HashSet::new();
         set.insert("sh".into());

@@ -1,8 +1,11 @@
 # session-hub Specification
 
 ## Purpose
-TBD - created by archiving change maestro-ui-redesign. Update Purpose after archive.
+
+Unified session catalog (hub) for listing, activating, and managing profiles.
+
 ## Requirements
+
 ### Requirement: Session hub SHALL be the unified catalog surface
 
 The session hub SHALL replace separate Home and Sessions screens. It SHALL list profiles as compact cards styled per the exported prototype (not a data table), grouped into sections: **Continuar** (last session when valid), **Fixadas** (pinned), and **Todas as sessões**.
@@ -12,17 +15,17 @@ The hub SHALL expose a toolbar with search, **Importar**, and **Nova sessão** a
 #### Scenario: Continue last session section
 
 - **WHEN** local UI state contains a valid last-opened profile path
-- **THEN** the hub SHALL show a prominent continue card with **Ativar** and **Editar** actions
+- **THEN** the hub SHALL show a prominent continue card with **Ativar**; clicking the card body opens the editor
 
 #### Scenario: Pinned section
 
 - **WHEN** the user has pinned one or more profiles
 - **THEN** pinned profiles SHALL appear in a **Fixadas** section before unpinned profiles in **Todas as sessões**
 
-#### Scenario: Import via modal
+#### Scenario: Import via file picker
 
 - **WHEN** the user clicks **Importar** in the hub toolbar
-- **THEN** an import modal styled per the prototype SHALL open for JSON paste or file selection
+- **THEN** the system SHALL allow selecting a `.json` profile file and importing it with a display name prompt
 
 ### Requirement: Session hub SHALL offer one-click activation
 
@@ -31,23 +34,22 @@ Each valid profile card SHALL expose **Ativar** as the primary action styled as 
 #### Scenario: Activate from card
 
 - **WHEN** the user clicks **Ativar** on a valid profile card
-- **THEN** the system SHALL activate using the on-disk profile and SHALL open the terminal-style activation overlay
+- **THEN** the system SHALL activate using the on-disk profile; a dedicated results overlay is not required
 
 ### Requirement: Session hub SHALL show human-readable summaries
 
-Each profile card SHALL show a summary line derived from metadata (e.g. app count, browser presence, URL count) and contextual badges (`browser_only`, invalid) using prototype badge styling.
+Each profile card SHALL show metadata-derived badges (app count, browser presence, invalid state) using prototype badge styling.
 
-#### Scenario: Summary line
+#### Scenario: Summary badges
 
-- **WHEN** a profile has 2 applications and a browser block with 3 URLs
-- **THEN** the card summary SHALL indicate apps and browser content in plain language
+- **WHEN** a profile has applications and optional browser URLs
+- **THEN** the card SHALL show badge hints for apps and browser content
 
 ### Requirement: Secondary actions SHALL use overflow menu
 
-Duplicate, export, delete, and dry-run SHALL be available from a per-card overflow menu (**···**) styled per prototype, not as always-visible row buttons.
+Duplicate, export, and delete SHALL be available from a per-card overflow menu (**···**) styled per prototype, not as always-visible row buttons.
 
 #### Scenario: Overflow menu exposes secondary actions
 
 - **WHEN** the user opens the overflow menu on a profile card
-- **THEN** duplicate, export, delete, and dry-run actions SHALL be available without always-visible row buttons on the card
-
+- **THEN** duplicate, export, and delete actions SHALL be available without always-visible row buttons on the card

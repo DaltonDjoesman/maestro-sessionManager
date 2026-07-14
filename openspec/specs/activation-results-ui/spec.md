@@ -1,38 +1,21 @@
 # activation-results-ui Specification
 
 ## Purpose
-TBD - created by archiving change session-hub-activation-ux-export. Update Purpose after archive.
+
+Backend activation reporting. In-app results UI (timeline overlay, open log) is **out of scope** for the current release; activation completes without a dedicated results panel.
+
 ## Requirements
-### Requirement: Post-activation summary SHALL present a readable timeline
 
-After activation completes, the UI SHALL render steps as a vertical timeline with status icons (success, failure, skipped, warning) and human-readable labels inside a **terminal-style overlay** matching the exported prototype (dark log surface, monospace step output, dismiss control). The overlay SHALL be accessible from both the session hub and the profile editor.
+### Requirement: Activation SHALL return structured step results
 
-#### Scenario: Results from hub activation
+When the client invokes `activate_session_profile`, the backend SHALL return an `ActivateSessionResult` with per-step status (success, failure, skipped, warning), labels, and optional log file path. The client MAY use this data for future UI; displaying it is not required in the current build.
+
+#### Scenario: Hub activation returns result
 
 - **WHEN** activation is triggered from the session hub
-- **THEN** the terminal overlay SHALL open with the timeline and log output
+- **THEN** the invoke SHALL complete with structured step results without requiring the UI to open a results overlay
 
-#### Scenario: Failed step highlighted
+#### Scenario: Failed step in result
 
-- **WHEN** any step has `status` failure
-- **THEN** that step SHALL be visually distinct in the overlay and the overall outcome SHALL read as failed until dismissed
-
-### Requirement: Post-activation summary SHALL link to the activation log
-
-The terminal overlay SHALL include **Abrir log** that opens the log file path when available; otherwise a non-blocking message within the overlay.
-
-#### Scenario: Open log succeeds
-
-- **WHEN** the log file path is known and the file exists
-- **THEN** choosing **Abrir log** SHALL open it with the system default application for that file type
-
-#### Scenario: Open log missing file
-
-- **WHEN** the log path is known but the file does not exist
-- **THEN** the app SHALL not crash and SHALL inform the user that the log file is unavailable
-
-#### Scenario: Open log from results panel
-
-- **WHEN** activation completes and the user clicks **Abrir log** in the terminal overlay
-- **THEN** the system SHALL open the activation log file path when available, or show a non-blocking message when no log path exists
-
+- **WHEN** any activation step fails
+- **THEN** the returned result SHALL mark that step as failed and the overall outcome SHALL reflect failure

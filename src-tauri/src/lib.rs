@@ -8,7 +8,6 @@ mod profiles;
 mod settings;
 
 use activation::{ActivateSessionResult, ActivationPreviewStep};
-use platform::LinuxPlatform;
 use profiles::{
     CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,
     SessionProfile,
@@ -18,18 +17,6 @@ use browser::SystemDefaultBrowserHint;
 use capture::RunningAppCandidate;
 use settings::{ApplicationSettings, SettingsManager};
 use tauri::Manager;
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {name}! Maestro core is ready.")
-}
-
-#[tauri::command]
-fn platform_name() -> String {
-    LinuxPlatform::new()
-        .map(|p| p.platform_name().to_string())
-        .unwrap_or_else(|_| "unknown".to_string())
-}
 
 #[tauri::command]
 fn get_settings(manager: tauri::State<'_, SettingsManager>) -> ApplicationSettings {
@@ -117,16 +104,6 @@ fn delete_session_profile(
 }
 
 #[tauri::command]
-fn duplicate_session_profile(
-    path: String,
-    manager: tauri::State<'_, SettingsManager>,
-) -> Result<DuplicateProfileResult, String> {
-    ProfileDirectory::new(manager.get().profiles_root_path())
-        .duplicate_file(&path)
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 fn duplicate_session_profile_with_name(
     path: String,
     display_name: String,
@@ -179,8 +156,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
-            platform_name,
             get_settings,
             read_clipboard_text,
             detect_system_default_browser,
@@ -192,7 +167,6 @@ pub fn run() {
             save_session_profile,
             create_session_profile,
             delete_session_profile,
-            duplicate_session_profile,
             duplicate_session_profile_with_name,
             import_session_profile_json,
             preview_session_activation,

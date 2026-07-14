@@ -1,11 +1,14 @@
 # assisted-profile-capture Specification
 
 ## Purpose
-TBD - created by archiving change maestro-mvp. Update Purpose after archive.
+
+Running-apps assistant for building session profiles from currently open applications and windows on Linux.
+
 ## Requirements
+
 ### Requirement: Running applications suggestion list
 
-The system SHALL provide an assistant that lists candidate user applications currently running, filtered to reduce system noise. By default the list SHALL include only candidates classified as `app` using the scored universal classifier. The user MAY enable an advanced control to also show candidates classified as `process`. The user SHALL select zero or more candidates to add as launch entries to a draft profile. Each candidate SHALL expose `displayName` for UI labels; when `windowTitle` is present it SHALL be used to disambiguate multiple rows of the same application. When enabled in settings, the assistant SHALL be available from:
+The system SHALL provide an assistant that lists candidate user applications currently running, filtered to reduce system noise. By default the list SHALL include only candidates classified as `app` using the scored universal classifier. The user SHALL select zero or more candidates to add as launch entries to a draft profile. Each candidate SHALL expose `displayName` for UI labels; when `windowTitle` is present it SHALL be used to disambiguate multiple rows of the same application. The assistant SHALL always be available from:
 
 1. A dedicated **Captura** sidebar route (primary entry), and
 2. The profile editor **Captura** tab for contextual capture while editing a profile.
@@ -17,13 +20,8 @@ The system SHALL provide an assistant that lists candidate user applications cur
 
 #### Scenario: Default list hides processes
 
-- **WHEN** the user opens the assistant with default settings
+- **WHEN** the user opens the assistant
 - **THEN** the UI SHALL show only candidates with `kind` equal to `app`
-
-#### Scenario: Advanced toggle shows processes
-
-- **WHEN** the user enables “Show processes” (or equivalent advanced control)
-- **THEN** the UI SHALL also list candidates with `kind` equal to `process` in a visually distinct section
 
 #### Scenario: Multiple browser windows listed separately
 
@@ -32,18 +30,13 @@ The system SHALL provide an assistant that lists candidate user applications cur
 
 #### Scenario: Standalone capture screen
 
-- **WHEN** assisted capture is enabled and the user navigates to **Captura** in the sidebar
-- **THEN** the running-apps list, filters, and create-from-capture actions SHALL be presented as a full-screen view matching the prototype
+- **WHEN** the user navigates to **Captura** in the sidebar
+- **THEN** the running-apps list, filters, and create-from-capture actions SHALL be presented as a full-screen view
 
 #### Scenario: Assistant in Capture tab
 
-- **WHEN** assisted capture is enabled and the user opens the **Captura** tab in the editor
+- **WHEN** the user opens the **Captura** tab in the editor
 - **THEN** the running-apps list and selection UI SHALL be available there for the profile being edited
-
-#### Scenario: Capture disabled
-
-- **WHEN** assisted capture is disabled in settings
-- **THEN** the **Captura** sidebar item SHALL be disabled or show guidance to enable it in Definições
 
 ### Requirement: Editor working directory hint (Linux)
 
@@ -54,15 +47,6 @@ On Linux, the system MAY inspect process metadata (for example current working d
 - **WHEN** the assistant suggests a working directory for a known editor process
 - **THEN** the user SHALL be able to change or clear that path before the entry is written to JSON
 
-### Requirement: Post-minimal-MVP delivery
-
-The assisted-profile-capture capability MAY ship after the first installable MVP that satisfies session activation without this assistant. The catalog and manual profile editing SHALL remain sufficient for users until this capability is enabled.
-
-#### Scenario: Assistant disabled in early build
-
-- **WHEN** the build flag or product configuration disables the assistant
-- **THEN** the system SHALL hide assistant entry points and SHALL not fail other capabilities
-
 ### Requirement: Assistant section labeling and presentation
 
 The profile editor assistant section SHALL use user-facing copy that reflects application selection (for example “Running apps”) rather than generic process enumeration. Cards SHALL prioritize `displayName`, optional icon, and project folder hint over raw PID and full command line.
@@ -71,4 +55,3 @@ The profile editor assistant section SHALL use user-facing copy that reflects ap
 
 - **WHEN** a candidate has `displayName` “Obsidian” and executable `/app/obsidian`
 - **THEN** the card title SHALL display “Obsidian” and SHALL NOT use only the executable basename as the primary title
-

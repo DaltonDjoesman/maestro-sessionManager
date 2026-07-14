@@ -1,8 +1,11 @@
 # application-settings Specification
 
 ## Purpose
-TBD - created by archiving change maestro-mvp. Update Purpose after archive.
+
+Global Maestro settings persistence and settings UI.
+
 ## Requirements
+
 ### Requirement: Global settings persistence
 
 The system SHALL persist global application settings to a local file (JSON or Tauri plugin store) with a `schema_version`. Settings SHALL include at minimum: profiles root directory path; default browser executable or detection hint; optional default browser family; logging verbosity; UI theme preference.
@@ -19,7 +22,9 @@ The system SHALL persist global application settings to a local file (JSON or Ta
 
 ### Requirement: Settings UI
 
-The system SHALL provide a settings screen grouped into sections styled per the prototype: **Geral** (theme), **Sessões** (profiles directory), **Browser** (defaults), **Assistente** (running-apps toggle), and **Avançado** (logging verbosity). Each section SHALL use prototype form-section titles and field spacing. Invalid paths SHALL be rejected with inline validation errors before save. An **About** block with application version SHALL appear at the bottom of the settings screen; there SHALL NOT be a separate About route.
+The system SHALL provide a settings screen grouped into sections styled per the prototype: **Geral** (theme), **Sessões** (profiles directory), **Browser** (defaults), and **Avançado** (logging verbosity). Each section SHALL use prototype form-section titles and field spacing. Invalid paths SHALL be rejected with inline validation errors before save. An **About** block with application version SHALL appear at the bottom of the settings screen; there SHALL NOT be a separate About route.
+
+Running-apps capture is always enabled; there SHALL NOT be a separate **Assistente** toggle in settings.
 
 #### Scenario: Invalid profiles path
 
@@ -54,4 +59,3 @@ When `ApplicationSettings.theme` is `light` or `dark`, the webview root SHALL se
 
 - **WHEN** the user changes theme in Definições
 - **THEN** the header theme toggle state and all surfaces SHALL reflect the saved theme immediately
-

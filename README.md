@@ -63,6 +63,11 @@ Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing b
 | `docs/session-profile-schema.md` | Session profile JSON fields (schema v1) |
 | `docs/examples/` | Example profile JSON for smoke tests |
 | `docs/smoke-test-checklist.md` | Manual QA checklist |
+| `design/` | UI prototype and design handoff assets |
+| `openspec/specs/` | Product capabilities (normative requirements) |
+| `openspec/changes/archive/` | Completed change proposals |
 | `openspec/specs/backend-dev-workflow/` | OpenSpec capability: backend dev workflow (agents, TDD, commits) |
+
+**Release scope:** capture is always available; activation has no in-app results overlay; dry-run and Advanced editor tab are deferred.
 
 OpenSpec workflow commands live under `.cursor/commands/` (`opsx-apply`, etc.).

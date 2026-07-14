@@ -38,7 +38,6 @@ export const pt = {
     createFromSelection: "Criar perfil",
     defaultProfileName: "Captura rápida",
     empty: "Nenhuma janela candidata encontrada.",
-    disabledHint: "Activa o assistente em Definições → Assistente.",
     workspace: (n: number) => `Workspace ${n}`,
     noWorkspace: "Sem workspace",
     selectedCount: (n: number) => `${n} selecionada${n === 1 ? "" : "s"}`,
@@ -69,7 +68,6 @@ export const pt = {
     duplicateNamed: "Duplicar com nome…",
     export: "Exportar",
     delete: "Apagar",
-    dryRun: "Pré-visualizar (dry-run)",
     working: "A processar…",
     invalid: "inválido",
     hasBrowser: "Browser",
@@ -91,7 +89,6 @@ export const pt = {
     dismissToast: "Fechar",
     reload: "Recarregar do disco",
     activate: "Ativar sessão",
-    dryRun: "Dry-run",
     loading: "A carregar…",
     tabContent: "Conteúdo",
     tabCapture: "Captura",
@@ -123,23 +120,8 @@ export const pt = {
     cwd: "Pasta de trabalho (opcional)",
     skipIfRunning: "Ignorar se já estiver a correr (mesmo nome de executável)",
     includeBrowser: "Incluir bloco de browser",
-    captureDisabled: "O assistente de captura está desactivado em Definições → Assistente.",
     activateHint:
       "Ativar usa o perfil tal como está no editor (incluindo alterações por guardar). Guarda se quiseres o mesmo JSON no disco.",
-  },
-
-  activation: {
-    resultsTitle: "Terminal de activação",
-    previewTitle: "Pré-visualização (dry-run)",
-    dryRunBadge: "DRY-RUN",
-    failedOutcome: "Activacao concluída com falhas.",
-    openLog: "Abrir log",
-    close: "Fechar",
-    logUnavailable:
-      "O ficheiro de log ainda não está disponível. Activa uma sessão uma vez para o gerar.",
-    loadingPreview: "A carregar pré-visualização…",
-    wouldSkip: "seria ignorado",
-    cwd: "cwd",
   },
 
   settings: {

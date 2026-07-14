@@ -35,6 +35,7 @@ pub fn discover_running_app_candidates() -> Vec<RunningAppCandidate> {
     }
 
     out.sort_by(|a, b| display_name_of(a).cmp(&display_name_of(b)));
+    enrich_editor_cwd_hints(&mut out);
     if out.len() > MAX_CANDIDATES {
         out.truncate(MAX_CANDIDATES);
     }
@@ -158,12 +159,18 @@ fn build_candidate_from_title(
         return None;
     }
     let exe = entry.exec_keys.first()?.clone();
+    let basename = basename_from_path(&exe).to_lowercase();
     Some(RunningAppCandidate {
         pid: window.pid.max(11),
         executable: exe.clone(),
         label: basename_from_path(&exe),
         cmd_preview: window.title.clone(),
-        cwd_hint: None,
+        cwd_hint: cwd_hint_for_editor(
+            &basename,
+            window.pid.max(11),
+            &[],
+            Some(&window.title),
+        ),
         kind,
         display_name: entry.name.clone(),
         icon_name: entry.icon.clone(),
@@ -314,7 +321,7 @@ fn build_candidate(
         executable,
         label,
         cmd_preview,
-        cwd_hint: cwd_hint_for_editor(&basename, pid_u32),
+        cwd_hint: cwd_hint_for_editor(&basename, pid_u32, proc.cmd(), window_title.as_deref()),
         kind,
         display_name,
         icon_name,
@@ -342,6 +349,9 @@ fn merge_candidate(best: &mut RunningAppCandidate, incoming: &RunningAppCandidat
     }
     if best.window_title.is_none() {
         best.window_title = incoming.window_title.clone();
+    }
+    if best.cwd_hint.is_none() {
+        best.cwd_hint = incoming.cwd_hint.clone();
     }
     if best.classification_confidence == Some(ClassificationConfidence::Low)
         && incoming.classification_confidence != Some(ClassificationConfidence::Low)
@@ -418,6 +428,27 @@ fn display_name_of(c: &RunningAppCandidate) -> String {
     c.display_name.clone()
 }
 
+fn enrich_editor_cwd_hints(candidates: &mut [RunningAppCandidate]) {
+    for c in candidates.iter_mut() {
+        if c.cwd_hint.is_some() {
+            continue;
+        }
+        let basename = Path::new(&c.executable)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
+        if let Some(hint) = cwd_hint_for_editor(
+            &basename,
+            c.pid,
+            &[],
+            c.window_title.as_deref(),
+        ) {
+            c.cwd_hint = Some(hint);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -457,5 +488,72 @@ mod tests {
     fn wm_noise_title_skipped() {
         assert!(is_wm_noise_title("@!1920,0;BDHF"));
         assert!(!is_wm_noise_title("TickTick"));
+    }
+
+    #[test]
+    fn merge_candidate_preserves_cwd_hint() {
+        let mut best = RunningAppCandidate {
+            pid: 1,
+            executable: "/usr/share/cursor/cursor".into(),
+            label: "cursor".into(),
+            cmd_preview: String::new(),
+            cwd_hint: None,
+            kind: CandidateKind::App,
+            display_name: "Cursor".into(),
+            icon_name: None,
+            desktop_workspace: Some(0),
+            window_title: None,
+            classification_confidence: Some(ClassificationConfidence::High),
+        };
+        let incoming = RunningAppCandidate {
+            pid: 1,
+            executable: "/usr/share/cursor/cursor".into(),
+            label: "cursor".into(),
+            cmd_preview: String::new(),
+            cwd_hint: Some("/home/user/sekai-site".into()),
+            kind: CandidateKind::App,
+            display_name: "Cursor".into(),
+            icon_name: None,
+            desktop_workspace: Some(0),
+            window_title: Some("Browser Tab - sekai-site - Cursor".into()),
+            classification_confidence: Some(ClassificationConfidence::High),
+        };
+        merge_candidate(&mut best, &incoming);
+        assert_eq!(best.cwd_hint.as_deref(), Some("/home/user/sekai-site"));
+        assert_eq!(
+            best.window_title.as_deref(),
+            Some("Browser Tab - sekai-site - Cursor")
+        );
+    }
+
+    #[test]
+    fn live_cursor_sekai_site_has_cwd_hint() {
+        use crate::capture::assistant::cwd_hint_for_editor;
+        let title = "Browser Tab - sekai-site - Cursor";
+        let hint = cwd_hint_for_editor("cursor", 1, &[], Some(title));
+        if dirs::home_dir()
+            .map(|h| h.join(".config/Cursor/User/workspaceStorage").is_dir())
+            .unwrap_or(false)
+        {
+            assert!(
+                hint.as_ref().is_some_and(|p| p.contains("sekai-site")),
+                "expected sekai-site folder from title, got {hint:?}"
+            );
+        }
+
+        let apps = discover_running_app_candidates();
+        for c in apps {
+            if c.window_title
+                .as_deref()
+                .is_some_and(|t| t.contains("sekai-site"))
+            {
+                assert!(
+                    c.cwd_hint.as_ref().is_some_and(|p| p.contains("sekai-site")),
+                    "discover missing cwd_hint for {:?}: {:?}",
+                    c.window_title,
+                    c.cwd_hint
+                );
+            }
+        }
     }
 }

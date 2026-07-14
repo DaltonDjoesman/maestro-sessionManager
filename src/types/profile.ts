@@ -9,7 +9,8 @@ export type ProfileCatalogEntry = {
   name: string | null;
   error?: string | null;
   applicationsCount?: number | null;
-  browserOnly?: boolean | null;
+  /** At least one application row is a browser. */
+  hasBrowser?: boolean | null;
 };
 
 export type CreateProfileResult = {
@@ -23,20 +24,26 @@ export type DuplicateProfileResult = {
 };
 
 /** Matches session profile JSON (`snake_case` from Rust). */
+export type ApplicationBrowserSettings = {
+  family: BrowserFamily;
+  user_data_dir: string | null;
+  firefox_profile: string | null;
+  firefox_no_remote: boolean | null;
+  urls: string[];
+};
+
 export type ApplicationLaunchEntry = {
   executable: string;
   args: string[];
   cwd: string | null;
   skip_if_running: boolean | null;
+  /** When set, activation uses browser argv builders instead of plain executable spawn. */
+  browser?: ApplicationBrowserSettings | null;
 };
 
-export type ProfileBrowserBlock = {
-  family: BrowserFamily;
+/** @deprecated Legacy top-level browser block; migrated into applications on load. */
+export type ProfileBrowserBlock = ApplicationBrowserSettings & {
   executable: string;
-  user_data_dir: string | null;
-  firefox_profile: string | null;
-  firefox_no_remote: boolean | null;
-  urls: string[];
 };
 
 export type ProfileCleanupRules = {

@@ -23,3 +23,4 @@ thiserror = "2"
 anyhow = "1"
 dirs = "6"
 uuid = { version = "1", features = ["v4", "serde"] }
+arboard = "3"

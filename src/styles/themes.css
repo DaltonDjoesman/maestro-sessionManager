@@ -1,0 +1,11 @@
+[data-theme="light"] .profile-card--invalid,
+[data-theme="light"] .session-card--invalid {
+  border-color: var(--danger);
+  background: var(--danger-dim);
+}
+
+[data-theme="dark"] .profile-card--invalid,
+[data-theme="dark"] .session-card--invalid {
+  border-color: var(--danger);
+  background: var(--danger-dim);
+}

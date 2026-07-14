@@ -1,6 +1,7 @@
 mod activation;
 mod browser;
 mod capture;
+mod clipboard;
 mod platform;
 mod process_launcher;
 mod profiles;
@@ -36,6 +37,11 @@ fn get_settings(manager: tauri::State<'_, SettingsManager>) -> ApplicationSettin
 }
 
 #[tauri::command]
+fn read_clipboard_text() -> Result<String, String> {
+    clipboard::read_text()
+}
+
+#[tauri::command]
 fn detect_system_default_browser() -> SystemDefaultBrowserHint {
     browser::detect_system_default_browser()
 }
@@ -55,12 +61,7 @@ fn save_settings(
 }
 
 #[tauri::command]
-fn list_assistant_running_apps(
-    manager: tauri::State<'_, SettingsManager>,
-) -> Result<Vec<RunningAppCandidate>, String> {
-    if !manager.get().assisted_profile_capture_enabled {
-        return Ok(vec![]);
-    }
+fn list_assistant_running_apps() -> Result<Vec<RunningAppCandidate>, String> {
     Ok(capture::list_running_app_candidates())
 }
 
@@ -181,6 +182,7 @@ pub fn run() {
             greet,
             platform_name,
             get_settings,
+            read_clipboard_text,
             detect_system_default_browser,
             validate_profiles_root,
             save_settings,

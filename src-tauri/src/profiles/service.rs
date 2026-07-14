@@ -22,9 +22,9 @@ pub struct ProfileCatalogEntry {
     /// When `valid`, number of application launch rows.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub applications_count: Option<u32>,
-    /// When `valid`, whether the profile launches browser only (browser set and no apps).
+    /// When `valid`, whether at least one application is a browser.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub browser_only: Option<bool>,
+    pub has_browser: Option<bool>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -92,7 +92,7 @@ impl ProfileDirectory {
                         name: None,
                         error: Some(format!("read {}: {e}", path.display())),
                         applications_count: None,
-                        browser_only: None,
+                        has_browser: None,
                     });
                     continue;
                 }
@@ -100,7 +100,7 @@ impl ProfileDirectory {
 
             match parse_and_validate(&file_path, &bytes) {
                 Ok(profile) => {
-                    let browser_only = profile.browser.is_some() && profile.applications.is_empty();
+                    let has_browser = profile.has_browser();
                     let applications_count = profile.applications.len() as u32;
                     entries.push(ProfileCatalogEntry {
                         file_path: file_path.clone(),
@@ -110,7 +110,7 @@ impl ProfileDirectory {
                         name: Some(profile.name.clone()),
                         error: None,
                         applications_count: Some(applications_count),
-                        browser_only: Some(browser_only),
+                        has_browser: Some(has_browser),
                     })
                 }
                 Err(e) => entries.push(ProfileCatalogEntry {
@@ -121,7 +121,7 @@ impl ProfileDirectory {
                     name: None,
                     error: Some(e.to_string()),
                     applications_count: None,
-                    browser_only: None,
+                    has_browser: None,
                 }),
             }
         }
@@ -139,10 +139,8 @@ impl ProfileDirectory {
 
     pub fn save_file(&self, user_path: &str, profile: &SessionProfile) -> Result<(), ProfileError> {
         let path = self.resolve_under_root(user_path, true)?;
-        profile.validate(&path.to_string_lossy())?;
-
-        let mut to_save = profile.clone();
-        to_save.schema_version = CURRENT_PROFILE_SCHEMA_VERSION;
+        let to_save = profile.clone().prepare_for_save();
+        to_save.validate(&path.to_string_lossy())?;
 
         atomic_write_json(&path, &to_save)?;
         Ok(())
@@ -282,7 +280,7 @@ fn parse_and_validate(path_label: &str, bytes: &[u8]) -> Result<SessionProfile, 
         message: e.to_string(),
     })?;
     profile.validate(path_label)?;
-    Ok(profile)
+    Ok(profile.normalize())
 }
 
 fn atomic_write_json(path: &Path, profile: &SessionProfile) -> Result<(), ProfileError> {
@@ -421,6 +419,7 @@ mod tests {
             args: vec![],
             cwd: None,
             skip_if_running: None,
+            browser: None,
         });
         let path = root.join("test.json");
         let err = dir.save_file(path.to_str().unwrap(), &p).unwrap_err();

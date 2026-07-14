@@ -168,7 +168,7 @@ fn application_row(spec: &LaunchSpec, outcome: &SpawnOutcome) -> ActivationStepS
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::profiles::{ApplicationLaunchEntry, ProfileBrowserBlock, SessionProfile};
+    use crate::profiles::{ApplicationBrowserSettings, ApplicationLaunchEntry, SessionProfile};
     use crate::settings::BrowserFamily;
 
     #[tokio::test]
@@ -182,6 +182,7 @@ mod tests {
                 args: vec![],
                 cwd: None,
                 skip_if_running: None,
+                browser: None,
             }],
             browser: None,
             cleanup: None,
@@ -201,6 +202,7 @@ mod tests {
                 args: vec![],
                 cwd: None,
                 skip_if_running: None,
+                browser: None,
             }],
             browser: None,
             cleanup: None,
@@ -218,20 +220,29 @@ mod tests {
             schema_version: 1,
             session_id: "sid".into(),
             name: "N".into(),
-            applications: vec![ApplicationLaunchEntry {
-                executable: "/bin/true".into(),
-                args: vec![],
-                cwd: None,
-                skip_if_running: None,
-            }],
-            browser: Some(ProfileBrowserBlock {
-                family: BrowserFamily::ChromiumLike,
-                executable: "/bin/true".into(),
-                user_data_dir: Some("/tmp/maestro-test-ud".into()),
-                firefox_profile: None,
-                firefox_no_remote: None,
-                urls: vec![],
-            }),
+            applications: vec![
+                ApplicationLaunchEntry {
+                    executable: "/bin/true".into(),
+                    args: vec![],
+                    cwd: None,
+                    skip_if_running: None,
+                    browser: Some(ApplicationBrowserSettings {
+                        family: BrowserFamily::ChromiumLike,
+                        user_data_dir: Some("/tmp/maestro-test-ud".into()),
+                        firefox_profile: None,
+                        firefox_no_remote: None,
+                        urls: vec![],
+                    }),
+                },
+                ApplicationLaunchEntry {
+                    executable: "/bin/true".into(),
+                    args: vec![],
+                    cwd: None,
+                    skip_if_running: None,
+                    browser: None,
+                },
+            ],
+            browser: None,
             cleanup: None,
         };
         let out = activate_session_profile(&p, "/ok.json").await.expect("ok");
@@ -255,6 +266,7 @@ mod tests {
                 args: vec!["-c".into(), "exit 0".into()],
                 cwd: Some("/".into()),
                 skip_if_running: None,
+                browser: None,
             }],
             browser: None,
             cleanup: None,

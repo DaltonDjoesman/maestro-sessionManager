@@ -1,32 +1,43 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AboutScreen } from "./components/AboutScreen";
-import { ProfileCatalogScreen } from "./components/ProfileCatalogScreen";
 import { ProfileEditorScreen } from "./components/ProfileEditorScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
-import type { ProfileCatalogEntry } from "./types/profile";
+import { AppShell, type AppRoute } from "./layout/AppShell";
+import { CaptureAssistantPage } from "./pages/CaptureAssistantPage";
+import { SessionHubPage } from "./pages/SessionHubPage";
+import {
+  loadActiveSessionLabel,
+  saveActiveSessionLabel,
+  saveLastSessionPath,
+} from "./sessionCatalogUi";
+import { applyDataThemeToDocument, resolveTheme } from "./themeDom";
 import type { ApplicationSettings } from "./types/settings";
-import { applyDataThemeToDocument } from "./themeDom";
-import { loadLastSessionPath, saveLastSessionPath } from "./sessionCatalogUi";
+import "./styles/tokens.css";
+import "./styles/themes.css";
+import "./styles/components.css";
 import "./App.css";
 
-type View = "home" | "profiles" | "profile-editor" | "settings" | "about";
-
 function App() {
-  const [view, setView] = useState<View>("home");
-  const [platform, setPlatform] = useState("…");
+  const [route, setRoute] = useState<AppRoute>("hub");
   const [appSettings, setAppSettings] = useState<ApplicationSettings | null>(null);
   const [editorPath, setEditorPath] = useState<string | null>(null);
+  const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
 
-  const [lastSessionOk, setLastSessionOk] = useState(false);
+  const version = import.meta.env.VITE_APP_VERSION ?? "0.1.0";
+  const profilesRoot = appSettings?.profiles_root ?? "";
+  const resolvedTheme = useMemo(
+    () => resolveTheme(appSettings?.theme ?? "dark"),
+    [appSettings?.theme],
+  );
 
   const refreshAppSettings = useCallback(() => {
-    invoke<string>("platform_name")
-      .then(setPlatform)
-      .catch(() => setPlatform("unavailable"));
-
     invoke<ApplicationSettings>("get_settings")
-      .then(setAppSettings)
+      .then((s) => {
+        setAppSettings(s);
+        if (s.profiles_root.trim()) {
+          setActiveSessionLabel(loadActiveSessionLabel(s.profiles_root));
+        }
+      })
       .catch(() => setAppSettings(null));
   }, []);
 
@@ -34,43 +45,23 @@ function App() {
     refreshAppSettings();
   }, [refreshAppSettings]);
 
-  const profilesRoot = appSettings?.profiles_root ?? "";
-  const lastSessionPath = profilesRoot.trim() ? loadLastSessionPath(profilesRoot) : null;
-
-  useEffect(() => {
-    if (!lastSessionPath || !profilesRoot.trim()) {
-      setLastSessionOk(false);
-      return;
-    }
-    let cancelled = false;
-    invoke<ProfileCatalogEntry[]>("list_session_profiles")
-      .then((rows) => {
-        if (cancelled) return;
-        setLastSessionOk(rows.some((r) => r.filePath === lastSessionPath && r.valid));
-      })
-      .catch(() => {
-        if (!cancelled) setLastSessionOk(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [lastSessionPath, profilesRoot, view]);
-
   useEffect(() => {
     if (!appSettings) return;
     return applyDataThemeToDocument(appSettings.theme);
   }, [appSettings?.theme]);
 
-  useEffect(() => {
-    if (view === "profile-editor" && !editorPath) {
-      setView("profiles");
-    }
-  }, [view, editorPath]);
-
-  const navigate = (next: View) => {
-    if (next === "profile-editor") return;
+  const closeEditor = () => {
     setEditorPath(null);
-    setView(next);
+    setRoute("hub");
+  };
+
+  const navigate = (next: AppRoute) => {
+    if (next === "editor") {
+      if (editorPath) setRoute("editor");
+      return;
+    }
+    setEditorPath(null);
+    setRoute(next);
   };
 
   const openEditor = (path: string) => {
@@ -78,112 +69,79 @@ function App() {
       saveLastSessionPath(profilesRoot, path);
     }
     setEditorPath(path);
-    setView("profile-editor");
+    setRoute("editor");
   };
 
-  const navLinkClass = (target: View) => {
-    const active = view === target || (target === "profiles" && view === "profile-editor");
-    return active ? "app-nav-link app-nav-link--active" : "app-nav-link";
+  const handleActivated = (label: string) => {
+    if (profilesRoot.trim()) {
+      saveActiveSessionLabel(profilesRoot, label);
+      setActiveSessionLabel(label);
+    }
+  };
+
+  const toggleTheme = async () => {
+    if (!appSettings) return;
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
+    try {
+      const updated = await invoke<ApplicationSettings>("save_settings", {
+        settings: { ...appSettings, theme: nextTheme },
+      });
+      setAppSettings(updated);
+    } catch {
+      /* keep current theme */
+    }
+  };
+
+  const clearActiveSession = () => {
+    if (profilesRoot.trim()) saveActiveSessionLabel(profilesRoot, null);
+    setActiveSessionLabel(null);
   };
 
   const renderMain = () => {
-    if (view === "settings") {
+    if (route === "settings") {
       return (
         <SettingsScreen
           onReloadSettings={refreshAppSettings}
-          onThemePreview={(t) => {
-            applyDataThemeToDocument(t);
-          }}
+          onThemePreview={(t) => applyDataThemeToDocument(t)}
         />
       );
     }
-    if (view === "about") {
-      return <AboutScreen />;
+    if (route === "capture") {
+      return <CaptureAssistantPage onEdit={openEditor} />;
     }
-    if (view === "profiles") {
-      return (
-        <ProfileCatalogScreen
-          profilesRoot={profilesRoot}
-          onEdit={openEditor}
-        />
-      );
-    }
-    if (view === "profile-editor" && editorPath) {
+    if (editorPath) {
       return (
         <ProfileEditorScreen
           filePath={editorPath}
-          onBack={() => {
-            setView("profiles");
-            setEditorPath(null);
-          }}
+          onBack={closeEditor}
+          onActivated={handleActivated}
         />
       );
     }
     return (
-      <main className="container home-screen">
-        <header className="hero">
-          <h1>Welcome</h1>
-          <p className="tagline">Pick a tab above to manage sessions or preferences.</p>
-        </header>
-        <section className="status-card home-status-card">
-          <p>
-            Platform: <strong>{platform}</strong>
-          </p>
-          <p>
-            Profiles directory: <strong>{profilesRoot || "…"}</strong>
-          </p>
-          {lastSessionPath && lastSessionOk ? (
-            <div className="home-continue-block">
-              <button
-                type="button"
-                className="btn-primary home-continue-btn"
-                onClick={() => openEditor(lastSessionPath)}
-              >
-                Continuar última sessão
-              </button>
-              <p className="hint home-continue-hint">
-                Opens the profile you last edited from this catalog. If the file was removed, use Sessions to pick
-                another.
-              </p>
-            </div>
-          ) : null}
-          <p className="hint" style={{ marginTop: "0.75rem" }}>
-            Open <strong>Sessions</strong> to list, create, edit, duplicate, delete, and activate session profiles.
-          </p>
-        </section>
-      </main>
+      <SessionHubPage profilesRoot={profilesRoot} onEdit={openEditor} onActivated={handleActivated} />
     );
   };
 
   return (
-    <div className="app-shell">
-      <header className="app-top-bar">
-        <div className="app-brand">
-          <button type="button" className="app-brand-btn" onClick={() => navigate("home")}>
-            Maestro
-          </button>
-          <span className="app-brand-sub">Linux sessions</span>
-        </div>
-        <nav className="app-nav" aria-label="Main">
-          <button type="button" className={navLinkClass("home")} onClick={() => navigate("home")}>
-            Home
-          </button>
-          <button type="button" className={navLinkClass("profiles")} onClick={() => navigate("profiles")}>
-            Sessions
-          </button>
-          <button type="button" className={navLinkClass("settings")} onClick={() => navigate("settings")}>
-            Settings
-          </button>
-          <button type="button" className={navLinkClass("about")} onClick={() => navigate("about")}>
-            About
-          </button>
-        </nav>
-      </header>
-
-      <div className="app-main" key={view === "profile-editor" ? `editor-${editorPath}` : view}>
+    <AppShell
+      route={route}
+      showEditorNav={!!editorPath}
+      activeSessionLabel={activeSessionLabel}
+      version={String(version)}
+      resolvedTheme={resolvedTheme}
+      contentLayout={route === "capture" ? "pane" : "scroll"}
+      onNavigate={navigate}
+      onThemeToggle={() => void toggleTheme()}
+      onClearActiveSession={clearActiveSession}
+    >
+      <div
+        className={`app-main-inner${route === "capture" ? " app-main-inner--pane-scroll" : ""}`}
+        key={editorPath ? `editor-${editorPath}` : route}
+      >
         {renderMain()}
       </div>
-    </div>
+    </AppShell>
   );
 }
 

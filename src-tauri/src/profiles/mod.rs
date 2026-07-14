@@ -4,8 +4,8 @@ mod model;
 mod service;
 
 pub use model::{
-    ApplicationLaunchEntry, ProfileBrowserBlock, ProfileCleanupRules, SessionProfile,
-    CURRENT_PROFILE_SCHEMA_VERSION, SUPPORTED_PROFILE_SCHEMA_VERSION,
+    ApplicationBrowserSettings, ApplicationLaunchEntry, ProfileBrowserBlock, ProfileCleanupRules,
+    SessionProfile, CURRENT_PROFILE_SCHEMA_VERSION, SUPPORTED_PROFILE_SCHEMA_VERSION,
 };
 pub use service::{
     CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,

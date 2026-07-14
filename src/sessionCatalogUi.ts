@@ -10,6 +10,7 @@ export function profilesRootStorageKey(profilesRoot: string): string {
 
 const pinsKey = (root: string) => `maestro.catalog.pins.${profilesRootStorageKey(root)}`;
 const lastKey = (root: string) => `maestro.catalog.lastSession.${profilesRootStorageKey(root)}`;
+const activeKey = (root: string) => `maestro.catalog.activeSession.${profilesRootStorageKey(root)}`;
 
 export function loadPinnedPaths(profilesRoot: string): string[] {
   try {
@@ -42,4 +43,21 @@ export function saveLastSessionPath(profilesRoot: string, path: string | null): 
     return;
   }
   localStorage.setItem(lastKey(profilesRoot), path.trim());
+}
+
+export function loadActiveSessionLabel(profilesRoot: string): string | null {
+  try {
+    const v = localStorage.getItem(activeKey(profilesRoot));
+    return v && v.trim() ? v.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveActiveSessionLabel(profilesRoot: string, label: string | null): void {
+  if (!label || !label.trim()) {
+    localStorage.removeItem(activeKey(profilesRoot));
+    return;
+  }
+  localStorage.setItem(activeKey(profilesRoot), label.trim());
 }

@@ -7,7 +7,12 @@ Primary UI labels, buttons, section headings, and empty states SHALL be in Europ
 #### Scenario: Hub actions in Portuguese
 
 - **WHEN** the session hub is displayed
-- **THEN** primary actions SHALL read **Ativar**, **Editar**, **Nova sessão**, and **Importar** (not English or pt-BR equivalents like "Salvar")
+- **THEN** primary actions SHALL read **Ativar**, **Editar**, **Nova sessão**, and **Definições** (not English equivalents)
+
+#### Scenario: Hub import in Portuguese
+
+- **WHEN** the session hub is displayed
+- **THEN** the import action SHALL read **Importar** (not English or pt-BR equivalents)
 
 #### Scenario: Capture screen in Portuguese
 

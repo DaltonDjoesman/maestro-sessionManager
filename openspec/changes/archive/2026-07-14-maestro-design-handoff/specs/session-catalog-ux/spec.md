@@ -9,6 +9,11 @@ The session hub (not a separate home screen) SHALL offer “Continuar última se
 - **WHEN** the user has previously opened a profile and local UI state contains its id
 - **THEN** the session hub SHALL show a primary action to activate or edit that profile in a visually distinct continue card
 
+#### Scenario: Pinned profiles ordered first
+
+- **WHEN** the user pins one or more profiles
+- **THEN** those profiles SHALL appear before unpinned profiles in the catalog list
+
 #### Scenario: Activate without opening editor
 
 - **WHEN** the user activates from the hub card

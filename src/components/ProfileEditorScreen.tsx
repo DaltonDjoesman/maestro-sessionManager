@@ -21,13 +21,21 @@ import type {
   SessionProfile,
 } from "../types/profile";
 import type { ApplicationSettings, BrowserFamily, SystemDefaultBrowserHint } from "../types/settings";
+import {
+  loadLastSessionPath,
+  loadPinnedPaths,
+  saveLastSessionPath,
+  savePinnedPaths,
+} from "../sessionCatalogUi";
 
 type EditorTab = "content" | "capture";
 
 interface ProfileEditorScreenProps {
   filePath: string;
+  profilesRoot: string;
   onBack: () => void;
   onActivated: (label: string) => void;
+  onDeleted?: (label: string) => void;
 }
 
 function cloneProfile(p: SessionProfile): SessionProfile {
@@ -66,7 +74,13 @@ function appDisplayLabel(app: ApplicationLaunchEntry, index: number): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
-export function ProfileEditorScreen({ filePath, onBack, onActivated }: ProfileEditorScreenProps) {
+export function ProfileEditorScreen({
+  filePath,
+  profilesRoot,
+  onBack,
+  onActivated,
+  onDeleted,
+}: ProfileEditorScreenProps) {
   const [profile, setProfile] = useState<SessionProfile | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -238,6 +252,32 @@ export function ProfileEditorScreen({ filePath, onBack, onActivated }: ProfileEd
         profile: toActivate,
       });
       onActivated(sessionLabel);
+    } catch (e) {
+      setSaveError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSession = async () => {
+    if (!profile) return;
+    if (!window.confirm(pt.hub.deleteConfirm(sessionLabel))) return;
+    setBusy(true);
+    setSaveError(null);
+    try {
+      await invoke("delete_session_profile", { path: filePath });
+      const root = profilesRoot.trim();
+      if (root) {
+        savePinnedPaths(
+          root,
+          loadPinnedPaths(root).filter((p) => p !== filePath),
+        );
+        if (loadLastSessionPath(root) === filePath) {
+          saveLastSessionPath(root, null);
+        }
+      }
+      onDeleted?.(sessionLabel);
+      onBack();
     } catch (e) {
       setSaveError(String(e));
     } finally {
@@ -426,30 +466,42 @@ export function ProfileEditorScreen({ filePath, onBack, onActivated }: ProfileEd
           <p className="view-subtitle">{pt.editor.activateHint}</p>
         </div>
         <div className="editor-sticky-actions">
-          {saveToastVisible ? (
-            <div className="save-toast" role="status">
-              <span className="save-toast-text">{pt.editor.savedToast}</span>
-              <button
-                type="button"
-                className="save-toast-close"
-                aria-label={pt.editor.dismissToast}
-                onClick={() => setSaveToastVisible(false)}
-              >
-                ×
-              </button>
-            </div>
-          ) : null}
-          <button
-            type="button"
-            className="btn btn-primary btn-compact"
-            disabled={busy}
-            onClick={() => void save()}
-          >
-            {saving ? pt.editor.saving : pt.editor.save}
-          </button>
-          <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
-            {pt.editor.activate}
-          </button>
+          <div className="editor-sticky-actions-start">
+            {saveToastVisible ? (
+              <div className="save-toast" role="status">
+                <span className="save-toast-text">{pt.editor.savedToast}</span>
+                <button
+                  type="button"
+                  className="save-toast-close"
+                  aria-label={pt.editor.dismissToast}
+                  onClick={() => setSaveToastVisible(false)}
+                >
+                  ×
+                </button>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-primary btn-compact"
+              disabled={busy}
+              onClick={() => void save()}
+            >
+              {saving ? pt.editor.saving : pt.editor.save}
+            </button>
+            <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
+              {pt.editor.activate}
+            </button>
+          </div>
+          <div className="editor-sticky-actions-end">
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact danger"
+              disabled={busy}
+              onClick={() => void deleteSession()}
+            >
+              {pt.hub.delete}
+            </button>
+          </div>
         </div>
       </header>
 

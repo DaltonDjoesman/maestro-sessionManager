@@ -572,7 +572,23 @@ html,
 .editor-sticky-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: min(100%, 28rem);
+}
+
+.editor-sticky-actions-start,
+.editor-sticky-actions-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
+}
+
+.editor-sticky-actions-end {
+  margin-left: auto;
 }
 
 .editor-tabs {

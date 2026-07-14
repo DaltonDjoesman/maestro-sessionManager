@@ -113,8 +113,12 @@ function App() {
       return (
         <ProfileEditorScreen
           filePath={editorPath}
+          profilesRoot={profilesRoot}
           onBack={closeEditor}
           onActivated={handleActivated}
+          onDeleted={(label) => {
+            if (activeSessionLabel === label) clearActiveSession();
+          }}
         />
       );
     }

@@ -4,6 +4,11 @@
 
 The user SHALL be able to open a dry-run preview showing argv per step. Dry-run SHALL be available from the editor **Avançado** tab and from the session hub card overflow menu. Dry-run output SHALL appear in the same terminal-style overlay used for activation results, with a clear dry-run indicator.
 
+#### Scenario: User reviews argv
+
+- **WHEN** the user opens dry-run from the activation confirmation surface
+- **THEN** the terminal overlay SHALL list all steps with argv visible before the user chooses **Ativar**
+
 #### Scenario: Dry-run from Advanced tab
 
 - **WHEN** the user opens dry-run from the editor Avançado tab

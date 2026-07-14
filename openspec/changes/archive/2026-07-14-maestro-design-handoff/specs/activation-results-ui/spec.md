@@ -17,3 +17,18 @@ After activation completes, the UI SHALL render steps as a vertical timeline wit
 ### Requirement: Post-activation summary SHALL link to the activation log
 
 The terminal overlay SHALL include **Abrir log** that opens the log file path when available; otherwise a non-blocking message within the overlay.
+
+#### Scenario: Open log succeeds
+
+- **WHEN** the log file path is known and the file exists
+- **THEN** choosing **Abrir log** SHALL open it with the system default application for that file type
+
+#### Scenario: Open log missing file
+
+- **WHEN** the log path is known but the file does not exist
+- **THEN** the app SHALL not crash and SHALL inform the user that the log file is unavailable
+
+#### Scenario: Open log from results panel
+
+- **WHEN** activation completes and the user clicks **Abrir log** in the terminal overlay
+- **THEN** the system SHALL open the activation log file path when available, or show a non-blocking message when no log path exists

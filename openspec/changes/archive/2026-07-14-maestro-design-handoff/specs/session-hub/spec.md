@@ -42,3 +42,8 @@ Each profile card SHALL show a summary line derived from metadata (e.g. app coun
 ### Requirement: Secondary actions SHALL use overflow menu
 
 Duplicate, export, delete, and dry-run SHALL be available from a per-card overflow menu (**···**) styled per prototype, not as always-visible row buttons.
+
+#### Scenario: Overflow menu exposes secondary actions
+
+- **WHEN** the user opens the overflow menu on a profile card
+- **THEN** duplicate, export, delete, and dry-run actions SHALL be available without always-visible row buttons on the card

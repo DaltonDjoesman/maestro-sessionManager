@@ -1,38 +1,30 @@
 # activation-preview Specification
 
 ## Purpose
-TBD - created by archiving change session-hub-activation-ux-export. Update Purpose after archive.
+
+Backend dry-run / preview of activation steps without executing them.
+
 ## Requirements
+
 ### Requirement: The system SHALL expose a preview-only activation command
 
 The backend SHALL provide a command (e.g. `preview_session_activation`) that returns the ordered list of planned activation steps including `argv` (and optional `cwd`) for each step **without** spawning processes or performing irreversible side effects.
 
 #### Scenario: Preview returns argv
 
-**WHEN** the client invokes preview for a valid profile id  
-**THEN** the response SHALL include each planned step with `argv` as it would be used by the real activation path.
+- **WHEN** the client invokes preview for a valid profile
+- **THEN** the response SHALL include each planned step with `argv` as it would be used by the real activation path
 
 #### Scenario: Preview does not execute
 
-**WHEN** preview is invoked  
-**THEN** no child processes for activation steps SHALL be started and no activation log SHALL be appended for real execution (preview may use a dedicated marker or omit logging entirely).
+- **WHEN** preview is invoked
+- **THEN** no child processes for activation steps SHALL be started and no activation log SHALL be appended for real execution
 
-### Requirement: The activation UI SHALL offer dry-run before confirm
+### Requirement: Dry-run UI is out of scope
 
-The user SHALL be able to open a dry-run preview showing argv per step. Dry-run SHALL be available from the editor **Avançado** tab and from the session hub card overflow menu. Dry-run output SHALL appear in the same terminal-style overlay used for activation results, with a clear dry-run indicator.
+A dedicated dry-run UI (hub overflow, editor tab) is **not required** in the current release. The preview command exists for tooling and future UI.
 
-#### Scenario: User reviews argv
+#### Scenario: No dry-run button required
 
-- **WHEN** the user opens dry-run from the activation confirmation surface
-- **THEN** the terminal overlay SHALL list all steps with argv visible before the user chooses **Ativar**
-
-#### Scenario: Dry-run from Advanced tab
-
-- **WHEN** the user opens dry-run from the editor Avançado tab
-- **THEN** the terminal overlay SHALL list all steps with argv visible and indicate dry-run mode
-
-#### Scenario: Dry-run from hub overflow
-
-- **WHEN** the user chooses dry-run from a hub card overflow menu
-- **THEN** the preview SHALL run against the on-disk profile without opening the editor and SHALL display in the terminal overlay
-
+- **WHEN** the user views the session hub or profile editor
+- **THEN** the UI SHALL NOT be required to expose dry-run controls

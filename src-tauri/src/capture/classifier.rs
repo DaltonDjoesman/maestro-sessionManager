@@ -19,6 +19,10 @@ pub struct ScoreInput {
     pub startup_wm_class_match: bool,
     pub flatpak_snap_hint: bool,
     pub user_session: bool,
+    /// True when a window source returned a non-empty mapped list for this session.
+    /// When false (e.g. pure Wayland without protocol access), strong `.desktop`
+    /// matches are not penalized for lacking a mapped window.
+    pub window_list_available: bool,
 }
 
 pub fn compute_score(input: &ScoreInput) -> i32 {
@@ -41,7 +45,7 @@ pub fn compute_score(input: &ScoreInput) -> i32 {
     if input.user_session {
         score += SCORE_USER_SESSION;
     }
-    if input.desktop_match && !input.has_window {
+    if input.desktop_match && !input.has_window && input.window_list_available {
         score += SCORE_NO_WINDOW_PENALTY;
     }
     score
@@ -99,15 +103,32 @@ mod tests {
     }
 
     #[test]
-    fn desktop_without_window_becomes_process() {
+    fn desktop_without_window_becomes_process_when_windows_enumerable() {
         let input = ScoreInput {
             desktop_match: true,
             user_session: true,
+            window_list_available: true,
             ..Default::default()
         };
         let (kind, _, score) = classify(&input);
         assert!(score < APP_THRESHOLD);
         assert_eq!(kind, CandidateKind::Process);
+    }
+
+    #[test]
+    fn strong_desktop_match_on_wayland_without_window_list_is_app() {
+        let input = ScoreInput {
+            desktop_match: true,
+            user_session: true,
+            window_list_available: false,
+            ..Default::default()
+        };
+        let (kind, _, score) = classify(&input);
+        assert!(
+            score >= APP_THRESHOLD,
+            "expected desktop+session to meet app threshold without no-window penalty, got {score}"
+        );
+        assert_eq!(kind, CandidateKind::App);
     }
 
     #[test]

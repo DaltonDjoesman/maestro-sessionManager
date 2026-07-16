@@ -24,3 +24,5 @@ anyhow = "1"
 dirs = "6"
 uuid = { version = "1", features = ["v4", "serde"] }
 arboard = "3"
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }

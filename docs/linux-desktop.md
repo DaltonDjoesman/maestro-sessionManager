@@ -49,12 +49,19 @@ The running-apps assistant can **read** (not control) which virtual workspace a 
 | Session | Mechanism | Expectation |
 |---------|-----------|-------------|
 | **X11** | `wmctrl -l -p` → EWMH desktop index per PID | Works when `wmctrl` is installed and the app has an X11 window |
-| **Wayland** (incl. Cosmic) | No stable cross-compositor API in MVP | `desktopWorkspace` is omitted; UI falls back to a flat list |
-| **Hybrid** (e.g. Flatpak app with `--ozone-platform=x11`) | Same as X11 for that window’s PID | Best-effort per process |
+| **Wayland (Cosmic)** | `ext-foreign-toplevel-list-v1` for titles/`app_id`; optional Cosmic `zcosmic_toplevel_info_v1` for workspace (soft-fail today → flat list) | Window-first discovery when the protocol binds; Tier A process+`.desktop` if not |
+| **Wayland + XWayland** | Supplemental `wmctrl -l -p` for XWayland clients only | Partial coverage — never treated as complete alone |
+| **Hybrid** (e.g. Flatpak app with `--ozone-platform=x11`) | Same as XWayland/`wmctrl` for that window’s PID | Best-effort per process |
 
-Maestro **does not** move or focus windows between workspaces. If workspace grouping is required on Wayland, a future spike may target compositor-specific D-Bus (Cosmic, GNOME KWin, etc.) behind the Linux platform adapter.
+Maestro **does not** move or focus windows between workspaces.
+
+### Cosmic spike (`ext-foreign-toplevel-list-v1`) — 2026-07-16
+
+On Pop!_OS Cosmic (`XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=COSMIC`), an **unprivileged** short-lived Wayland client **can** bind `ext_foreign_toplevel_list_v1` and receive `title` / `app_id` for mapped toplevels (verified live: Cursor, Vivaldi, TickTick, Slack, Maestro, etc.). Cosmic also advertises `zcosmic_toplevel_info_v1`; workspace **index** attachment via that protocol is deferred (soft-fail) — handle→index mapping needs Cosmic workspace protocol wiring. Until then, `desktopWorkspace` may be omitted and the UI stays a flat list while still listing `app` rows.
 
 Manual check (X11): run `echo $XDG_SESSION_TYPE`, open apps on workspace 1 and 2, refresh the assistant, confirm section headings “Workspace 1” / “Workspace 2”. Multi-window browsers (e.g. Vivaldi) SHOULD appear as separate rows per window when titles or workspaces differ.
+
+Manual check (Cosmic Wayland): refresh capture with native Wayland apps open; confirm `kind: app` rows. With an XWayland app (e.g. Slack) open, confirm it appears via supplemental `wmctrl` and/or foreign-toplevel. Without foreign-toplevel access, Tier A scoring still surfaces strong `.desktop` matches as `app`.
 
 ## App classification (running-apps assistant)
 
@@ -62,12 +69,15 @@ The assistant classifies each candidate as **`app`** or **`process`** using a sc
 
 | Signal | Points | Notes |
 |--------|--------|-------|
-| Mapped top-level window (X11 / `wmctrl`) | +100 | Window-first discovery on X11; one row per window |
+| Mapped top-level window (X11 / `wmctrl` / Wayland foreign-toplevel) | +100 | Window-first whenever the merged window index is non-empty |
 | Matched `.desktop` entry (`Exec`, `TryExec`, `StartupWMClass`) | +80 | Index includes deb, Flatpak exports, Snap paths |
 | `StartupWMClass` / title heuristic match | +60 | Used when PID is invalid but title matches |
 | Flatpak `/app/` or Snap path segment | +20 | Install-type hint only |
+| No-window penalty | −50 | Applied only when a window source returned mapped windows and this process has none |
 
 **Threshold:** score ≥ **80** → `kind: app`; below → `process` (visible when “Show processes” is on).
+
+On **Wayland without any window list**, strong `.desktop` matches that pass noise filters are **not** given the no-window penalty, so they still reach the app threshold (Tier A).
 
 **Confidence:** `high` (window + desktop), `medium` (window only), `low` (neither strong signal). The UI may show a subtle **low** badge on process rows when the process toggle is enabled.
 

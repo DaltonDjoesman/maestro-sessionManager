@@ -15,16 +15,18 @@ use crate::capture::assistant::{
 };
 use crate::capture::classifier::{classify, flatpak_snap_path_hint, user_session_active, ScoreInput};
 use crate::capture::desktop_index::{humanize_basename, DesktopIndex};
-use crate::platform::{denylisted_basename, has_resolved_executable, session_type, WindowRecord, WorkspaceIndex};
+use crate::platform::{
+    denylisted_basename, has_resolved_executable, uses_window_first_discovery, WindowRecord,
+    WorkspaceIndex,
+};
 
 const MAX_CANDIDATES: usize = 200;
 
 pub fn discover_running_app_candidates() -> Vec<RunningAppCandidate> {
     let desktop_index = DesktopIndex::load();
     let workspace_index = WorkspaceIndex::load();
-    let st = session_type();
 
-    let mut out = if (st == "x11" || st == "tty") && !workspace_index.windows().is_empty() {
+    let mut out = if uses_window_first_discovery(&workspace_index) {
         discover_from_windows(&desktop_index, &workspace_index)
     } else {
         Vec::new()
@@ -86,6 +88,7 @@ fn candidate_from_window(
                 workspace,
                 my_pid,
                 true,
+                true,
             );
         }
     }
@@ -100,7 +103,11 @@ fn build_candidate_from_title(
     sys: &System,
     my_pid: u32,
 ) -> Option<RunningAppCandidate> {
-    let desktop_entry = desktop.match_window_title(&window.title);
+    let desktop_entry = window
+        .app_id
+        .as_deref()
+        .and_then(|id| desktop.match_app_id(id))
+        .or_else(|| desktop.match_window_title(&window.title));
 
     for (pid, proc) in sys.processes() {
         let pid_u32 = pid.as_u32();
@@ -121,17 +128,27 @@ fn build_candidate_from_title(
         {
             continue;
         }
-        let matches = if let Some(entry) = desktop_entry {
+
+        let title_l = window.title.to_lowercase();
+        let matches = if let Some(app_id) = window.app_id.as_deref() {
+            let app_l = app_id.to_lowercase();
+            let basename_hits =
+                basename == app_l || basename.contains(&app_l) || app_l.contains(&basename);
+            let desktop_hits = {
+                let by_proc = desktop.match_process(&executable, &basename, Some(&cmd_full));
+                let by_app = desktop.match_app_id(app_id);
+                by_proc.is_some() && by_proc == by_app
+            };
+            basename_hits || desktop_hits
+        } else if let Some(entry) = desktop_entry {
+            // Only bind a process when match_process agrees, or the basename appears in the
+            // title. Do NOT use `title.contains(entry.name)` — that is always true when
+            // `desktop_entry` was derived from this same title (mis-labels Slack as Cursor).
             desktop.match_process(&executable, &basename, Some(&cmd_full)) == Some(entry)
-                || window
-                    .title
-                    .to_lowercase()
-                    .contains(&entry.name.to_lowercase())
+                || (title_l.contains(&basename) && basename.len() >= 3)
         } else {
-            window.title.to_lowercase().contains(&basename)
-                || desktop
-                    .match_process(&executable, &basename, Some(&cmd_full))
-                    .is_some()
+            // Require title↔basename affinity — never pick an arbitrary desktop process.
+            title_l.contains(&basename) && basename.len() >= 3
         };
         if matches {
             return build_candidate(
@@ -142,6 +159,7 @@ fn build_candidate_from_title(
                 workspace,
                 my_pid,
                 true,
+                true,
             );
         }
     }
@@ -150,15 +168,20 @@ fn build_candidate_from_title(
     let score_input = ScoreInput {
         has_window: true,
         desktop_match: true,
-        startup_wm_class_match: entry.startup_wm_class.is_some(),
+        startup_wm_class_match: entry.startup_wm_class.is_some() || window.app_id.is_some(),
         user_session: user_session_active(),
+        window_list_available: true,
         ..Default::default()
     };
     let (kind, confidence, _) = classify(&score_input);
     if kind != CandidateKind::App {
         return None;
     }
-    let exe = entry.exec_keys.first()?.clone();
+    let exe = entry
+        .exec_keys
+        .first()
+        .cloned()
+        .unwrap_or_else(|| window.app_id.clone().unwrap_or_else(|| entry.name.clone()));
     let basename = basename_from_path(&exe).to_lowercase();
     Some(RunningAppCandidate {
         pid: window.pid.max(11),
@@ -185,6 +208,7 @@ fn discover_from_processes(
     workspace: &WorkspaceIndex,
 ) -> Vec<RunningAppCandidate> {
     let my_pid = std::process::id();
+    let window_list_available = !workspace.windows().is_empty();
     let mut sys = System::new();
     sys.refresh_processes_specifics(
         ProcessesToUpdate::All,
@@ -210,6 +234,7 @@ fn discover_from_processes(
             my_pid,
             workspace.has_window_for_pid(pid_u32)
                 || workspace.workspace_for_pid(pid_u32).is_some(),
+            window_list_available,
         ) {
             out.push(c);
         }
@@ -238,6 +263,7 @@ fn build_candidate(
     workspace: &WorkspaceIndex,
     my_pid: u32,
     has_window: bool,
+    window_list_available: bool,
 ) -> Option<RunningAppCandidate> {
     let _ = my_pid;
     let raw_name = proc.name().to_string_lossy();
@@ -294,6 +320,7 @@ fn build_candidate(
         startup_wm_class_match: wm_match,
         flatpak_snap_hint: flatpak_snap_path_hint(&executable),
         user_session: user_session_active(),
+        window_list_available,
     };
     let (kind, confidence, _) = classify(&score_input);
 
@@ -555,5 +582,65 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn title_match_does_not_attach_unrelated_process_just_because_desktop_name_is_in_title() {
+        // Regression: wmctrl Slack row (no app_id) previously matched the first process
+        // because `title.contains(entry.name)` is always true once the entry came from that title.
+        let window = WindowRecord {
+            pid: 4, // bogus XWayland PID
+            desktop: 0,
+            title: "novo-website (Canal) - NIAEFEUP - Slack".into(),
+            app_id: None,
+        };
+        let title_l = window.title.to_lowercase();
+        let entry_name = "Slack";
+        let unrelated_basename = "cursor";
+        // Old broken condition would accept this:
+        let broken = title_l.contains(&entry_name.to_lowercase());
+        assert!(broken, "precondition: title contains desktop name");
+        // Correct affinity requires the process basename in the title (or match_process).
+        let correct = title_l.contains(unrelated_basename) && unrelated_basename.len() >= 3;
+        assert!(
+            !correct,
+            "cursor must not be accepted for a Slack-only title"
+        );
+    }
+
+    #[test]
+    #[ignore = "requires live session"]
+    fn live_discover_includes_app_kind_rows() {
+        let apps = discover_running_app_candidates();
+        let app_rows: Vec<_> = apps.iter().filter(|c| c.kind == CandidateKind::App).collect();
+        println!("[live] candidates={} app_rows={}", apps.len(), app_rows.len());
+        for c in app_rows.iter().take(15) {
+            println!(
+                "  kind={:?} name={} title={:?} ws={:?}",
+                c.kind, c.display_name, c.window_title, c.desktop_workspace
+            );
+        }
+        assert!(
+            !app_rows.is_empty(),
+            "expected at least one kind=app candidate on Cosmic"
+        );
+        let slack_titles: Vec<_> = app_rows
+            .iter()
+            .filter(|c| {
+                c.window_title
+                    .as_deref()
+                    .is_some_and(|t| t.contains("Slack"))
+            })
+            .collect();
+        assert_eq!(
+            slack_titles.len(),
+            1,
+            "Slack title must appear once, got: {:?}",
+            slack_titles
+                .iter()
+                .map(|c| (&c.display_name, &c.window_title))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(slack_titles[0].display_name, "Slack");
     }
 }

@@ -135,6 +135,30 @@ impl DesktopIndex {
         name_matches.sort_by(|a, b| b.name.len().cmp(&a.name.len()));
         name_matches.into_iter().next()
     }
+
+    /// Match a Wayland foreign-toplevel `app_id` (e.g. `ticktick`, `vivaldi-stable`).
+    pub fn match_app_id(&self, app_id: &str) -> Option<&DesktopEntry> {
+        let id = app_id.trim();
+        if id.is_empty() {
+            return None;
+        }
+        let lower = id.to_lowercase();
+        if let Some(entry) = self.by_key.get(&lower) {
+            return Some(entry);
+        }
+        if let Some(entry) = self.by_wm_class.get(&lower) {
+            return Some(entry);
+        }
+        // Desktop file id often matches app_id (e.g. `slack.desktop` → key `slack`).
+        self.by_key.values().find(|entry| {
+            entry
+                .startup_wm_class
+                .as_deref()
+                .map(|wm| wm.eq_ignore_ascii_case(id))
+                .unwrap_or(false)
+                || entry.name.eq_ignore_ascii_case(id)
+        })
+    }
 }
 
 fn desktop_application_dirs() -> Vec<PathBuf> {

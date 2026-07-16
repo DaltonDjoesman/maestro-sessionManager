@@ -4,20 +4,7 @@ use sysinfo::{
     Process, ProcessesToUpdate, ProcessRefreshKind, System, UpdateKind,
 };
 
-use super::{PlatformError, ProcessCandidate};
-
-/// Linux adapter (Pop!_OS reference). Uses `sysinfo` for process enumeration.
-pub struct LinuxPlatform;
-
-impl LinuxPlatform {
-    pub fn new() -> Result<Self, PlatformError> {
-        Ok(Self)
-    }
-
-    pub fn platform_name(&self) -> &'static str {
-        "linux"
-    }
-}
+use super::ProcessCandidate;
 
 /// True for normal user-space programs with a readable `/proc/<pid>/exe` (excludes kernel threads).
 pub(crate) fn has_resolved_executable(proc: &Process) -> bool {

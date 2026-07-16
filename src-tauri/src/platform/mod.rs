@@ -3,20 +3,11 @@
 mod linux;
 mod workspace;
 
-pub use linux::LinuxPlatform;
-
 pub(crate) use workspace::{session_type, WindowRecord, WorkspaceIndex};
 
 pub(crate) use linux::{denylisted_basename, has_resolved_executable};
 
 use serde::Serialize;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum PlatformError {
-    #[error("platform operation failed: {0}")]
-    Operation(String),
-}
 
 /// One user-visible process row (Linux: post-filters for tooling like the profile assistant).
 #[allow(dead_code)]

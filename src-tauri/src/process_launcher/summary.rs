@@ -10,6 +10,7 @@ use super::sequence::spawn_ordered_with_delay_after_success;
 use super::{LaunchSpec, SpawnOutcome};
 
 /// Zip parallel slices from [`spawn_ordered_with_delay_after_success`] into UI-facing rows.
+#[allow(dead_code)] // Covered by unit tests; reserved for delayed multi-app launch wiring.
 pub fn map_application_spawn_results(
     specs: &[LaunchSpec],
     outcomes: &[SpawnOutcome],
@@ -42,6 +43,7 @@ pub fn map_application_spawn_results(
 }
 
 /// Run ordered application spawns and build activation summaries in one call (for task 6 wiring).
+#[allow(dead_code)] // Covered by unit tests; reserved for delayed multi-app launch wiring.
 pub async fn spawn_application_sequence_summaries(
     specs: &[LaunchSpec],
     delay_after_success: Duration,

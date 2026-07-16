@@ -33,6 +33,7 @@ impl SettingsStore {
         Ok(Self::new(settings_file_path()?))
     }
 
+    #[allow(dead_code)] // Used by unit tests; keep for callers that need the resolved path.
     pub fn path(&self) -> &Path {
         &self.path
     }

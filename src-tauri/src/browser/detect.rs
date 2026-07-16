@@ -12,11 +12,6 @@ pub fn executable_basename(executable: &str) -> String {
         .unwrap_or_else(|| t.to_lowercase())
 }
 
-/// Whether `executable` looks like a graphical web browser.
-pub fn is_browser_executable(executable: &str) -> bool {
-    detect_browser_family(executable).is_some()
-}
-
 /// Infer browser family from executable basename/path, when recognizable.
 pub fn detect_browser_family(executable: &str) -> Option<BrowserFamily> {
     let base = executable_basename(executable);

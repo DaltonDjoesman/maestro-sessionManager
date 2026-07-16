@@ -146,6 +146,15 @@ async fn activate_session_profile(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK may probe GStreamer DMA formats on Linux; disabling DMABUF avoids known
+    // gst-plugin-scanner assertion noise and blank-window issues (Tauri Linux graphics guide).
+    #[cfg(target_os = "linux")]
+    {
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {

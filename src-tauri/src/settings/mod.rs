@@ -5,13 +5,19 @@ mod model;
 mod store;
 mod validation;
 
-pub use defaults::{default_profiles_root, default_settings, maestro_data_dir};
+pub use defaults::maestro_data_dir;
 pub use model::{
-    ApplicationSettings, BrowserFamily, LogVerbosity, UiTheme, CURRENT_SCHEMA_VERSION,
-    SUPPORTED_SCHEMA_VERSION,
+    ApplicationSettings, BrowserFamily, CURRENT_SCHEMA_VERSION, SUPPORTED_SCHEMA_VERSION,
 };
-pub use store::{settings_file_path, SettingsStore};
+pub use store::SettingsStore;
 pub use validation::{validate_profiles_root_path, ProfilesRootValidationError};
+
+#[allow(unused_imports)] // Re-exported for tests and future command surface.
+pub use defaults::{default_profiles_root, default_settings};
+#[allow(unused_imports)]
+pub use model::{LogVerbosity, UiTheme};
+#[allow(unused_imports)]
+pub use store::settings_file_path;
 
 use std::fs;
 use std::sync::Mutex;
@@ -68,6 +74,8 @@ impl SettingsManager {
         Ok(new_settings)
     }
 
+    /// Re-save the in-memory settings snapshot (reserved for explicit flush paths).
+    #[allow(dead_code)]
     pub fn persist(&self) -> Result<(), SettingsError> {
         let settings = self.get();
         self.store.save(&settings)

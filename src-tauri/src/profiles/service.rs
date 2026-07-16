@@ -164,6 +164,8 @@ impl ProfileDirectory {
         Ok(())
     }
 
+    /// Duplicate with an automatic "(copy)" display name (unit-tested; UI uses the named variant).
+    #[allow(dead_code)]
     pub fn duplicate_file(&self, user_path: &str) -> Result<DuplicateProfileResult, ProfileError> {
         fs::create_dir_all(&self.root)?;
         let mut profile = self.load_file(user_path)?;

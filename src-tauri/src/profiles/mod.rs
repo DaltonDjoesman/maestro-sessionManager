@@ -3,9 +3,12 @@
 mod model;
 mod service;
 
+pub use model::{ApplicationLaunchEntry, ProfileBrowserBlock, SessionProfile};
+
+#[allow(unused_imports)] // Re-exported for tests and future command surface.
 pub use model::{
-    ApplicationBrowserSettings, ApplicationLaunchEntry, ProfileBrowserBlock, ProfileCleanupRules,
-    SessionProfile, CURRENT_PROFILE_SCHEMA_VERSION, SUPPORTED_PROFILE_SCHEMA_VERSION,
+    ApplicationBrowserSettings, ProfileCleanupRules, CURRENT_PROFILE_SCHEMA_VERSION,
+    SUPPORTED_PROFILE_SCHEMA_VERSION,
 };
 pub use service::{
     CreateProfileResult, DuplicateProfileResult, ProfileCatalogEntry, ProfileDirectory,

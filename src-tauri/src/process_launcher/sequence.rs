@@ -6,6 +6,7 @@ use super::spawn::{spawn_launch_spec, LaunchSpec, SpawnOutcome};
 
 /// Launch each spec in order. After each **successful** start, waits `delay_after_success`
 /// before attempting the next entry (skipped when delay is zero or this was the last entry).
+#[allow(dead_code)] // Covered by unit tests; activation currently loops with zero delay.
 pub async fn spawn_ordered_with_delay_after_success(
     specs: &[LaunchSpec],
     delay_after_success: Duration,

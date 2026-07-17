@@ -298,7 +298,6 @@ export function SessionHubPage({ profilesRoot, onEdit, onActivated }: SessionHub
         <div className="card-top">
           <div className="card-title-group">
             <h3 className="card-name">{label}</h3>
-            <span className="card-id">{r.fileName}</span>
           </div>
           <button
             type="button"

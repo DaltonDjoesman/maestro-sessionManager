@@ -74,6 +74,11 @@ function appDisplayLabel(app: ApplicationLaunchEntry, index: number): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
+function appSummaryHint(app: ApplicationLaunchEntry): string {
+  const exe = app.executable.trim();
+  return exe || pt.editor.noExecutable;
+}
+
 export function ProfileEditorScreen({
   filePath,
   profilesRoot,
@@ -295,9 +300,9 @@ export function ProfileEditorScreen({
         skip_if_running: null,
         browser: null,
       };
-      return { ...prev, applications: [...prev.applications, next] };
+      return { ...prev, applications: [next, ...prev.applications] };
     });
-    setExpandedAppIndex(profile?.applications.length ?? 0);
+    setExpandedAppIndex(0);
   };
 
   const removeApp = (index: number) => {
@@ -467,6 +472,17 @@ export function ProfileEditorScreen({
         </div>
         <div className="editor-sticky-actions">
           <div className="editor-sticky-actions-start">
+            <button
+              type="button"
+              className="btn btn-primary btn-compact"
+              disabled={busy}
+              onClick={() => void save()}
+            >
+              {saving ? pt.editor.saving : pt.editor.save}
+            </button>
+            <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
+              {pt.editor.activate}
+            </button>
             {saveToastVisible ? (
               <div className="save-toast" role="status">
                 <span className="save-toast-text">{pt.editor.savedToast}</span>
@@ -480,17 +496,6 @@ export function ProfileEditorScreen({
                 </button>
               </div>
             ) : null}
-            <button
-              type="button"
-              className="btn btn-primary btn-compact"
-              disabled={busy}
-              onClick={() => void save()}
-            >
-              {saving ? pt.editor.saving : pt.editor.save}
-            </button>
-            <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
-              {pt.editor.activate}
-            </button>
           </div>
           <div className="editor-sticky-actions-end">
             <button
@@ -543,6 +548,7 @@ export function ProfileEditorScreen({
           const browserSettings = browserSettingsOf(app);
           const expanded = expandedAppIndex === i;
           const label = appDisplayLabel(app, i);
+          const hint = appSummaryHint(app);
           return (
           <div
             key={i}
@@ -557,69 +563,84 @@ export function ProfileEditorScreen({
               <span className="app-card-chevron" aria-hidden>
                 {expanded ? "▾" : "▸"}
               </span>
-              <span className="app-card-name">{label}</span>
-              {browserApp ? <span className="badge badge-gray">Browser</span> : null}
+              <span className="app-card-icon" aria-hidden>
+                {label.charAt(0).toUpperCase()}
+              </span>
+              <span className="app-card-summary-text">
+                <span className="app-card-name">{label}</span>
+                <span className="app-card-hint" title={hint}>
+                  {hint}
+                </span>
+              </span>
+              <span className="app-card-summary-badges">
+                {browserApp ? <span className="badge badge-gray">Browser</span> : null}
+                {app.skip_if_running ? (
+                  <span className="badge badge-gray">{pt.editor.skipIfRunningBadge}</span>
+                ) : null}
+              </span>
             </button>
             {expanded ? (
             <div className="app-card-body">
-            <div className="app-card-actions">
-              <button type="button" className="btn btn-secondary btn-compact danger" onClick={() => removeApp(i)}>
-                {pt.editor.remove}
-              </button>
-            </div>
-            <label className="field">
-              <span>{pt.editor.executable}</span>
-              <input
-                type="text"
-                value={app.executable}
-                onChange={(e) => patchApp(i, { executable: e.target.value })}
-                placeholder={browserApp ? browserExecutablePlaceholder : "/usr/bin/code or code"}
-              />
-            </label>
-            {browserApp && browserSettings ? (
-              <ApplicationBrowserFields
-                browser={browserSettings}
-                onPatch={(patch) => setBrowserPatch(i, patch)}
-              />
-            ) : (
-              <>
-                <label className="field">
-                  <span>{pt.editor.args}</span>
-                  <textarea
-                    rows={3}
-                    value={(app.args ?? []).join("\n")}
-                    onChange={(e) =>
-                      patchApp(i, {
-                        args: e.target.value
-                          .split("\n")
-                          .map((s) => s.trimEnd())
-                          .filter((s) => s.length > 0),
-                      })
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>{pt.editor.cwd}</span>
+              <div className="app-card-body-header">
+                <button type="button" className="btn btn-secondary btn-compact danger" onClick={() => removeApp(i)}>
+                  {pt.editor.remove}
+                </button>
+              </div>
+              <div className="app-card-grid">
+                <label className={`field${browserApp ? " field-full" : ""}`}>
+                  <span>{pt.editor.executable}</span>
                   <input
                     type="text"
-                    value={app.cwd ?? ""}
-                    onChange={(e) =>
-                      patchApp(i, { cwd: e.target.value.trim() ? e.target.value : null })
-                    }
+                    value={app.executable}
+                    onChange={(e) => patchApp(i, { executable: e.target.value })}
+                    placeholder={browserApp ? browserExecutablePlaceholder : "/usr/bin/code or code"}
                   />
                 </label>
-              </>
-            )}
-            <label className="field-inline">
-              <input
-                type="checkbox"
-                checked={app.skip_if_running === true}
-                onChange={(e) =>
-                  patchApp(i, { skip_if_running: e.target.checked ? true : null })
-                }
-              />
-              <span>{pt.editor.skipIfRunning}</span>
-            </label>
+                {browserApp && browserSettings ? (
+                  <ApplicationBrowserFields
+                    browser={browserSettings}
+                    onPatch={(patch) => setBrowserPatch(i, patch)}
+                  />
+                ) : (
+                  <>
+                    <label className="field">
+                      <span>{pt.editor.cwd}</span>
+                      <input
+                        type="text"
+                        value={app.cwd ?? ""}
+                        onChange={(e) =>
+                          patchApp(i, { cwd: e.target.value.trim() ? e.target.value : null })
+                        }
+                      />
+                    </label>
+                    <label className="field field-full">
+                      <span>{pt.editor.args}</span>
+                      <textarea
+                        rows={3}
+                        value={(app.args ?? []).join("\n")}
+                        onChange={(e) =>
+                          patchApp(i, {
+                            args: e.target.value
+                              .split("\n")
+                              .map((s) => s.trimEnd())
+                              .filter((s) => s.length > 0),
+                          })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
+                <label className="field-toggle field-full">
+                  <input
+                    type="checkbox"
+                    checked={app.skip_if_running === true}
+                    onChange={(e) =>
+                      patchApp(i, { skip_if_running: e.target.checked ? true : null })
+                    }
+                  />
+                  <span>{pt.editor.skipIfRunning}</span>
+                </label>
+              </div>
             </div>
             ) : null}
           </div>

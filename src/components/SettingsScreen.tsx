@@ -185,7 +185,7 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
         {saved ? <p className="form-success">{pt.settings.saved}</p> : null}
 
         <div className="form-actions">
-          <button type="submit" className="btn-primary" disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? pt.settings.saving : pt.settings.save}
           </button>
         </div>

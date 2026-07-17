@@ -28,13 +28,14 @@
 }
 
 .btn-primary {
-  background-color: var(--accent);
-  color: #fff;
-  border: none;
+  background-color: var(--surface);
+  color: var(--accent);
+  border: 1px solid color-mix(in oklch, var(--accent) 55%, var(--border));
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
+  background-color: var(--accent-dim);
+  border-color: var(--accent);
 }
 
 .btn-secondary {
@@ -44,17 +45,14 @@
 }
 
 .btn-activate {
-  background-color: var(--success);
-  color: #fff;
-  border: none;
+  background-color: var(--surface);
+  color: var(--success);
+  border: 1px solid color-mix(in oklch, var(--success) 55%, var(--border));
 }
 
 .btn-activate:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-
-.btn-activate:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background-color: var(--success-dim);
+  border-color: var(--success);
 }
 
 .save-toast {
@@ -118,13 +116,17 @@
 }
 
 .btn.danger,
-.btn-compact.danger {
-  border-color: color-mix(in oklch, var(--danger) 55%, var(--border));
+.btn-compact.danger,
+.btn.btn-secondary.danger,
+.btn.btn-secondary.btn-compact.danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--surface));
   color: var(--danger);
 }
 
 .btn.danger:hover:not(:disabled),
-.btn-compact.danger:hover:not(:disabled) {
+.btn-compact.danger:hover:not(:disabled),
+.btn.btn-secondary.danger:hover:not(:disabled),
+.btn.btn-secondary.btn-compact.danger:hover:not(:disabled) {
   background: var(--danger-dim);
   border-color: var(--danger);
 }
@@ -151,13 +153,14 @@
 
 .theme-toggle-btn {
   color: var(--fg);
-  border-color: var(--border-focus);
+  border: none;
+  background: transparent;
 }
 
 .theme-toggle-btn:hover:not(:disabled) {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 12%, var(--surface));
+  color: var(--fg);
+  border: none;
+  background: var(--surface-hover);
 }
 
 .search-input-wrapper {
@@ -858,59 +861,8 @@
   background: color-mix(in oklch, var(--accent-dim) 80%, var(--bg));
 }
 
-.app-card--collapsed {
-  padding: 0;
-}
-
-.app-card--expanded {
-  padding: 0;
-}
-
-.app-card-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 14px;
-  border: none;
-  border-radius: inherit;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.app-card-summary:hover {
-  background: var(--surface-hover);
-}
-
-.app-card-chevron {
-  flex-shrink: 0;
-  width: 14px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.app-card-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.app-card-body {
-  padding: 0 14px 14px;
-  border-top: 1px solid var(--border);
-}
-
-.app-card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 10px 0 8px;
-}
+/* Application cards (collapsed summary / expanded body) are defined in App.css,
+   alongside the rest of the profile editor's application-list styles. */
 
 .capture-page {
   display: flex;

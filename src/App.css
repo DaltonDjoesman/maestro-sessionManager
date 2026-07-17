@@ -480,22 +480,28 @@ html,
   cursor: not-allowed;
 }
 
-.btn-activate {
+/* Outlined activate — only for legacy markup without `.btn` */
+.btn-activate:not(.btn) {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
   border-radius: var(--radius-md);
   padding: 0.45rem 0.9rem;
-  border: 1px solid transparent;
-  background: var(--color-activate);
-  color: #fff;
+  border: 1px solid color-mix(in oklch, var(--success) 55%, var(--border));
+  background: var(--surface);
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
-.btn-activate:hover:not(:disabled) {
-  background: var(--color-activate-hover);
+.btn-activate:not(.btn):hover:not(:disabled) {
+  background: var(--success-dim);
+  border-color: var(--success);
 }
 
-.btn-activate:disabled {
+.btn-activate:not(.btn):disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -732,12 +738,22 @@ html,
   border-radius: 8px;
   padding: 0.5rem 1rem;
   border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .btn-primary:not(.btn) {
-  background: var(--color-accent);
-  color: #fff;
+  background: var(--surface);
+  color: var(--accent);
+  border-color: color-mix(in oklch, var(--accent) 55%, var(--border));
   font-weight: 600;
+}
+
+.btn-primary:not(.btn):hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent);
 }
 
 .btn-primary:not(.btn):disabled {
@@ -880,12 +896,13 @@ html,
   gap: 0.35rem;
 }
 
-.btn-compact {
+/* Legacy compact sizing when `.btn` is absent; `.btn.btn-compact` uses components.css */
+.btn-compact:not(.btn) {
   padding: 0.35rem 0.6rem;
   font-size: 0.85rem;
 }
 
-.btn-compact.danger {
+.btn-compact.danger:not(.btn) {
   border-color: #8b4a4a;
   color: #f2a6a6;
 }
@@ -960,20 +977,127 @@ html,
 }
 
 .app-card {
-  margin-top: 0.75rem;
-  padding: 1rem;
-  border-radius: 10px;
-  border: 1px solid #2d3340;
-  background: #1a1d26;
+  margin-top: 0.6rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
 }
 
-.app-card-head {
+.app-card--expanded {
+  border-color: var(--border);
+}
+
+.app-card-summary {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  color: #9aa0a6;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-card-summary:hover {
+  background: var(--surface-hover);
+}
+
+.app-card-chevron {
+  flex-shrink: 0;
+  width: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.app-card-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.app-card--browser .app-card-icon {
+  background: var(--success-dim);
+  color: var(--success);
+}
+
+.app-card-summary-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.app-card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-card-hint {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-card-summary-badges {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-card-body {
+  padding: 0 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.app-card-body-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 0 4px;
+}
+
+.app-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.app-card-grid .field {
+  margin-top: 0;
+}
+
+@media (min-width: 620px) {
+  .app-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field-full {
+  grid-column: 1 / -1;
 }
 
 .field textarea {
@@ -987,26 +1111,39 @@ html,
   resize: vertical;
 }
 
-.field-inline {
+.field-toggle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
+  gap: 10px;
+  margin-top: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 0.85rem;
+  color: var(--fg);
+  cursor: pointer;
 }
 
-.browser-block {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #2d3340;
+.field-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
-.browser-block-inner {
-  padding: 1rem 1.1rem;
-  border-radius: 12px;
-  border: 1px solid #343d4f;
-  background: linear-gradient(165deg, #171a22 0%, #12151c 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+.browser-fields {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.browser-fields-hint {
+  margin: 0 0 0.65rem;
+}
+
+.browser-fields-grid .field-full {
+  margin-top: 0.15rem;
 }
 
 .browser-meta-hint {
@@ -1152,9 +1289,16 @@ html,
 .browser-url-remove {
   flex-shrink: 0;
   align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Override legacy .btn-compact padding so label stays optically centered. */
+  height: 32px;
+  padding: 0 12px;
+  line-height: 1;
 }
 
-.profile-editor .browser-block .field input[type="text"]::placeholder {
+.profile-editor .browser-fields .field input[type="text"]::placeholder {
   color: #7a8494;
   opacity: 1;
 }

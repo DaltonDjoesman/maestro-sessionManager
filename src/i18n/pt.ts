@@ -119,6 +119,8 @@ export const pt = {
     args: "Argumentos (um por linha)",
     cwd: "Pasta de trabalho (opcional)",
     skipIfRunning: "Ignorar se já estiver a correr (mesmo nome de executável)",
+    skipIfRunningBadge: "Ignora se já activo",
+    noExecutable: "Sem executável definido",
     includeBrowser: "Incluir bloco de browser",
     activateHint:
       "Ativar usa o perfil tal como está no editor (incluindo alterações por guardar). Guarda se quiseres o mesmo JSON no disco.",

@@ -33,9 +33,9 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
   };
 
   return (
-    <div className="browser-block browser-block--embedded">
-      <p className="hint browser-embedded-label">{pt.editor.browserAppHint}</p>
-      <div className="browser-block-inner">
+    <div className="browser-fields field-full">
+      <p className="hint browser-fields-hint">{pt.editor.browserAppHint}</p>
+      <div className="app-card-grid browser-fields-grid">
         <label className="field">
           <span>{pt.editor.browserFamily}</span>
           <select
@@ -77,16 +77,16 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
             />
           </label>
         )}
-        <div className="field browser-urls-field">
+        <div className="field field-full browser-urls-field">
           <div className="browser-urls-label-row">
             <span>{pt.editor.urlsToOpen}</span>
             <div className="browser-urls-toolbar">
-              <button type="button" className="btn-secondary btn-compact" onClick={addBrowserUrlRow}>
+              <button type="button" className="btn btn-secondary btn-compact" onClick={addBrowserUrlRow}>
                 {pt.editor.addUrl}
               </button>
               <button
                 type="button"
-                className="btn-secondary btn-compact"
+                className="btn btn-secondary btn-compact"
                 onClick={() => void pasteBrowserUrlsFromClipboard()}
               >
                 {pt.editor.pasteFromClipboard}
@@ -125,7 +125,7 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
                 </div>
                 <button
                   type="button"
-                  className="btn-secondary btn-compact danger browser-url-remove"
+                  className="btn btn-secondary btn-compact danger browser-url-remove"
                   aria-label={`${pt.editor.remove} URL ${i + 1}`}
                   onClick={() => onPatch({ urls: (browser.urls ?? []).filter((_, j) => j !== i) })}
                 >

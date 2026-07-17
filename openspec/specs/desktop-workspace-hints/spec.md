@@ -2,10 +2,12 @@
 
 ## Purpose
 TBD - created by archiving change running-apps-assistant-quality. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Best-effort desktop workspace read (Linux)
 
-On Linux, when the active session exposes workspace metadata for top-level windows, the system MAY attach an optional `desktopWorkspace` identifier to assistant candidates. Workspace SHALL be resolved per **window** when window-anchored discovery is active, not inferred solely from a deduplicated process row with a different PID than the window owner. The system SHALL NOT move, focus, or resize windows. When workspace cannot be resolved, `desktopWorkspace` SHALL be omitted or null.
+On Linux, when the active session exposes workspace metadata for top-level windows, the system MAY attach an optional `desktopWorkspace` identifier to assistant candidates. Workspace SHALL be resolved per **window** when window-anchored discovery is active, not inferred solely from a deduplicated process row with a different PID than the window owner. Sources MAY include EWMH `_NET_WM_DESKTOP` via `wmctrl` on X11/XWayland **and** Cosmic (or other) Wayland toplevel workspace metadata when available. The system SHALL NOT move, focus, or resize windows. When workspace cannot be resolved, `desktopWorkspace` SHALL be omitted or null.
 
 #### Scenario: X11 session resolves workspace index
 
@@ -16,6 +18,11 @@ On Linux, when the active session exposes workspace metadata for top-level windo
 
 - **WHEN** `XDG_SESSION_TYPE` is `wayland` and no supported compositor workspace API is available
 - **THEN** candidates SHALL be returned without `desktopWorkspace` and the assistant SHALL remain fully functional
+
+#### Scenario: Cosmic Wayland session with toplevel workspace metadata
+
+- **WHEN** `XDG_SESSION_TYPE` is `wayland`, Cosmic (or another supported adapter) reports a workspace index for a mapped toplevel used in discovery
+- **THEN** the corresponding candidate SHALL include `desktopWorkspace` as that non-negative integer index
 
 #### Scenario: Multi-window browser rows carry distinct workspaces
 
@@ -35,4 +42,3 @@ When one or more candidates include `desktopWorkspace`, the profile editor assis
 
 - **WHEN** no candidate includes `desktopWorkspace`
 - **THEN** the UI SHALL fall back to the phase-1 layout (flat or alphabetical grouping by `displayName`) without error
-

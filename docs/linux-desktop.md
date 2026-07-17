@@ -49,19 +49,35 @@ The running-apps assistant can **read** (not control) which virtual workspace a 
 | Session | Mechanism | Expectation |
 |---------|-----------|-------------|
 | **X11** | `wmctrl -l -p` → EWMH desktop index per PID | Works when `wmctrl` is installed and the app has an X11 window |
-| **Wayland (Cosmic)** | `ext-foreign-toplevel-list-v1` for titles/`app_id`; optional Cosmic `zcosmic_toplevel_info_v1` for workspace (soft-fail today → flat list) | Window-first discovery when the protocol binds; Tier A process+`.desktop` if not |
+| **Wayland (Cosmic)** | `ext-foreign-toplevel-list-v1` for titles/`app_id`; `zcosmic_toplevel_info_v1` + `ext_workspace_manager_v1` for workspace (handle→stable 0-based index) | Window-first discovery with workspace headings when Cosmic grants those protocols; soft-fail omits `desktopWorkspace` (no fake “Workspace 1”) |
 | **Wayland + XWayland** | Supplemental `wmctrl -l -p` for XWayland clients only | Partial coverage — never treated as complete alone |
 | **Hybrid** (e.g. Flatpak app with `--ozone-platform=x11`) | Same as XWayland/`wmctrl` for that window’s PID | Best-effort per process |
 
 Maestro **does not** move or focus windows between workspaces.
 
-### Cosmic spike (`ext-foreign-toplevel-list-v1`) — 2026-07-16
+### Cosmic workspace grouping — 2026-07-17
 
-On Pop!_OS Cosmic (`XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=COSMIC`), an **unprivileged** short-lived Wayland client **can** bind `ext_foreign_toplevel_list_v1` and receive `title` / `app_id` for mapped toplevels (verified live: Cursor, Vivaldi, TickTick, Slack, Maestro, etc.). Cosmic also advertises `zcosmic_toplevel_info_v1`; workspace **index** attachment via that protocol is deferred (soft-fail) — handle→index mapping needs Cosmic workspace protocol wiring. Until then, `desktopWorkspace` may be omitted and the UI stays a flat list while still listing `app` rows.
+On Pop!_OS Cosmic (`XDG_SESSION_TYPE=wayland`, `XDG_CURRENT_DESKTOP=COSMIC`), an **unprivileged** short-lived Wayland client binds:
+
+1. `ext_foreign_toplevel_list_v1` — titles / `app_id` for mapped toplevels  
+2. `zcosmic_toplevel_info_v1` (v2+) — `get_cosmic_toplevel` associates each foreign handle with Cosmic workspace membership (`ext_workspace_enter` / leave)  
+3. `ext_workspace_manager_v1` — workspace handles announced in order → stable **0-based** indices (UI “Workspace N” = index + 1)
+
+If Cosmic denies or times out on toplevel-info / workspace globals, titles/`app_id` still list and `desktopWorkspace` is **omitted** — the assistant must **not** invent index `0` (which would collapse everything under “Workspace 1”). Sticky / multi-workspace toplevels pick the **lowest** index for that snapshot.
 
 Manual check (X11): run `echo $XDG_SESSION_TYPE`, open apps on workspace 1 and 2, refresh the assistant, confirm section headings “Workspace 1” / “Workspace 2”. Multi-window browsers (e.g. Vivaldi) SHOULD appear as separate rows per window when titles or workspaces differ.
 
-Manual check (Cosmic Wayland): refresh capture with native Wayland apps open; confirm `kind: app` rows. With an XWayland app (e.g. Slack) open, confirm it appears via supplemental `wmctrl` and/or foreign-toplevel. Without foreign-toplevel access, Tier A scoring still surfaces strong `.desktop` matches as `app`.
+Manual check (Cosmic Wayland):
+
+1. Open at least one app on Cosmic workspace 1 and another on workspace 2 (e.g. TickTick on 1, Cursor on 2).  
+2. Refresh the running-apps assistant capture.  
+3. Confirm distinct section headings **“Workspace 1”** and **“Workspace 2”** (not a single fake “Workspace 1” for everything).  
+4. Confirm `kind: app` rows still appear; with an XWayland app (e.g. Slack) open, it appears via supplemental `wmctrl` and/or foreign-toplevel.  
+5. Without foreign-toplevel access, Tier A scoring still surfaces strong `.desktop` matches as `app`.
+
+### Cosmic spike notes (`ext-foreign-toplevel-list-v1`) — 2026-07-16
+
+Unprivileged bind of foreign-toplevel was verified live (Cursor, Vivaldi, TickTick, Slack, Maestro, etc.). Workspace index attachment was completed in the follow-up change above.
 
 ## App classification (running-apps assistant)
 

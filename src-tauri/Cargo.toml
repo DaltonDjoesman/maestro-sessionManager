@@ -26,3 +26,6 @@ uuid = { version = "1", features = ["v4", "serde"] }
 arboard = "3"
 wayland-client = "0.31"
 wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+# GPL-3.0-only (Cosmic protocol bindings). Acceptable for this Cosmic/Pop!_OS-targeted
+# crate; avoids pulling libcosmic. Use `client` only — no server feature.
+cosmic-protocols = { version = "0.2", default-features = false, features = ["client"] }

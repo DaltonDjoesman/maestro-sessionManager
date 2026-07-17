@@ -13,7 +13,9 @@ pub fn session_type() -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WindowRecord {
     pub pid: u32,
-    pub desktop: u32,
+    /// 0-based workspace index when known (`wmctrl` always sets this; Wayland/Cosmic
+    /// may leave it `None` when workspace protocols soft-fail).
+    pub desktop: Option<u32>,
     pub title: String,
     /// Wayland `app_id` when known (foreign-toplevel); unused for `wmctrl` rows.
     pub app_id: Option<String>,
@@ -78,7 +80,9 @@ impl WorkspaceIndex {
     fn ingest_records(&mut self, records: Vec<WindowRecord>) {
         for record in records {
             if record.pid > 10 {
-                self.pid_to_desktop.entry(record.pid).or_insert(record.desktop);
+                if let Some(desktop) = record.desktop {
+                    self.pid_to_desktop.entry(record.pid).or_insert(desktop);
+                }
             }
             self.windows.push(record);
         }
@@ -105,7 +109,9 @@ impl WorkspaceIndex {
         self.pid_to_desktop.clear();
         for w in &self.windows {
             if w.pid > 10 {
-                self.pid_to_desktop.entry(w.pid).or_insert(w.desktop);
+                if let Some(desktop) = w.desktop {
+                    self.pid_to_desktop.entry(w.pid).or_insert(desktop);
+                }
             }
         }
     }
@@ -156,7 +162,7 @@ impl WorkspaceIndex {
         self.windows
             .iter()
             .filter(|w| w.title.to_lowercase().contains(&lower))
-            .map(|w| w.desktop)
+            .filter_map(|w| w.desktop)
             .min()
     }
 
@@ -209,11 +215,8 @@ fn merge_window_record_fields(primary: &WindowRecord, other: &WindowRecord) -> W
         } else {
             primary.pid
         },
-        desktop: if primary.desktop != 0 {
-            primary.desktop
-        } else {
-            other.desktop
-        },
+        // Prefer a known workspace; do not treat missing as index 0.
+        desktop: primary.desktop.or(other.desktop),
         title: primary.title.clone(),
         app_id: primary.app_id.clone().or_else(|| other.app_id.clone()),
     }
@@ -254,7 +257,7 @@ fn parse_wmctrl_lp(text: &str, windows: &mut Vec<WindowRecord>, pid_to_desktop: 
         let title = parts.collect::<Vec<_>>().join(" ");
         windows.push(WindowRecord {
             pid,
-            desktop,
+            desktop: Some(desktop),
             title,
             app_id: None,
         });
@@ -308,7 +311,7 @@ mod tests {
         let mut index = WorkspaceIndex::default();
         index.windows.push(WindowRecord {
             pid: 2,
-            desktop: 5,
+            desktop: Some(5),
             title: "Project structure - noteTaking - Obsidian 1.12.7".into(),
             app_id: None,
         });
@@ -328,13 +331,13 @@ mod tests {
     fn merge_window_sources_combines_records_and_pid_map() {
         let wmctrl = vec![WindowRecord {
             pid: 100,
-            desktop: 0,
+            desktop: Some(0),
             title: "Slack".into(),
             app_id: None,
         }];
         let wayland = vec![WindowRecord {
             pid: 200,
-            desktop: 2,
+            desktop: Some(2),
             title: "Firefox".into(),
             app_id: Some("firefox".into()),
         }];
@@ -363,7 +366,7 @@ mod tests {
     fn non_empty_merged_index_selects_window_first() {
         let merged = merge_window_sources([WindowSource::Wmctrl(vec![WindowRecord {
             pid: 42,
-            desktop: 1,
+            desktop: Some(1),
             title: "App".into(),
             app_id: None,
         }])]);
@@ -375,19 +378,42 @@ mod tests {
         let merged = merge_window_sources([
             WindowSource::Wmctrl(vec![WindowRecord {
                 pid: 4,
-                desktop: 0,
+                desktop: Some(0),
                 title: "novo-website - Slack".into(),
                 app_id: None,
             }]),
             WindowSource::WaylandForeignToplevel(vec![WindowRecord {
                 pid: 0,
-                desktop: 0,
+                desktop: None,
                 title: "novo-website - Slack".into(),
                 app_id: Some("Slack".into()),
             }]),
         ]);
         assert_eq!(merged.windows().len(), 1);
         assert_eq!(merged.windows()[0].app_id.as_deref(), Some("Slack"));
+        // Prefer known wmctrl desktop when Wayland row lacks workspace.
+        assert_eq!(merged.windows()[0].desktop, Some(0));
+    }
+
+    #[test]
+    fn merge_prefers_known_wayland_desktop_over_none() {
+        let merged = merge_window_sources([
+            WindowSource::Wmctrl(vec![WindowRecord {
+                pid: 4,
+                desktop: Some(1),
+                title: "Firefox".into(),
+                app_id: None,
+            }]),
+            WindowSource::WaylandForeignToplevel(vec![WindowRecord {
+                pid: 0,
+                desktop: Some(2),
+                title: "Firefox".into(),
+                app_id: Some("firefox".into()),
+            }]),
+        ]);
+        assert_eq!(merged.windows().len(), 1);
+        // Wayland wins on quality; its known desktop is kept.
+        assert_eq!(merged.windows()[0].desktop, Some(2));
     }
 
     #[test]
@@ -398,7 +424,7 @@ mod tests {
         println!("[live] WorkspaceIndex::load windows={n}");
         for w in index.windows().iter().take(12) {
             println!(
-                "  pid={} desktop={} app_id={:?} title={}",
+                "  pid={} desktop={:?} app_id={:?} title={}",
                 w.pid, w.desktop, w.app_id, w.title
             );
         }

@@ -197,7 +197,7 @@ fn build_candidate_from_title(
         kind,
         display_name: entry.name.clone(),
         icon_name: entry.icon.clone(),
-        desktop_workspace: Some(window.desktop),
+        desktop_workspace: window.desktop,
         window_title: Some(window.title.clone()),
         classification_confidence: Some(confidence),
     })
@@ -337,7 +337,7 @@ fn build_candidate(
     };
 
     let desktop_workspace = window
-        .map(|w| w.desktop)
+        .and_then(|w| w.desktop)
         .or_else(|| workspace.workspace_for_pid(pid_u32))
         .or_else(|| workspace.workspace_for_executable(&executable, &display_name));
 
@@ -590,7 +590,7 @@ mod tests {
         // because `title.contains(entry.name)` is always true once the entry came from that title.
         let window = WindowRecord {
             pid: 4, // bogus XWayland PID
-            desktop: 0,
+            desktop: Some(0),
             title: "novo-website (Canal) - NIAEFEUP - Slack".into(),
             app_id: None,
         };

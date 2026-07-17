@@ -1,9 +1,4 @@
-# desktop-workspace-hints Specification
-
-## Purpose
-TBD - created by archiving change running-apps-assistant-quality. Update Purpose after archive.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Best-effort desktop workspace read (Linux)
 
@@ -34,6 +29,8 @@ On Linux, when the active session exposes workspace metadata for top-level windo
 - **WHEN** window-anchored discovery emits two rows for the same executable on different workspaces
 - **THEN** each row SHALL carry the `desktopWorkspace` of its respective window
 
+## ADDED Requirements
+
 ### Requirement: Cosmic workspace soft-fail does not fake Workspace 1
 
 When Cosmic foreign-toplevel enumeration succeeds but Cosmic workspace metadata cannot be attached, candidates from those Wayland records SHALL omit `desktopWorkspace` rather than defaulting every row to index `0` (which the UI would render as a single “Workspace 1” group).
@@ -42,17 +39,3 @@ When Cosmic foreign-toplevel enumeration succeeds but Cosmic workspace metadata 
 
 - **WHEN** Cosmic foreign-toplevel returns mapped windows with titles/`app_id` but workspace handle mapping fails or is unavailable
 - **THEN** those candidates SHALL have `desktopWorkspace` omitted or null and the assistant SHALL still list them as apps when classification succeeds
-
-### Requirement: Assistant UI groups by desktop workspace
-
-When one or more candidates include `desktopWorkspace`, the profile editor assistant SHALL render candidates grouped under workspace headings (for example “Workspace 1”, “Workspace 2”) ordered by workspace index. Candidates without workspace SHALL appear under a single “No workspace” or equivalent group after numbered workspaces.
-
-#### Scenario: Mixed workspace and unknown candidates
-
-- **WHEN** the user refreshes the assistant and some candidates have `desktopWorkspace` and others do not
-- **THEN** the UI SHALL show numbered workspace sections first in ascending order and SHALL show candidates without workspace in a separate trailing section
-
-#### Scenario: No workspace metadata available
-
-- **WHEN** no candidate includes `desktopWorkspace`
-- **THEN** the UI SHALL fall back to the phase-1 layout (flat or alphabetical grouping by `displayName`) without error

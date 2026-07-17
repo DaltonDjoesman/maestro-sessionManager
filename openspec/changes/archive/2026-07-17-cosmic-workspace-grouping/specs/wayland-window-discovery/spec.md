@@ -1,9 +1,4 @@
-# wayland-window-discovery Specification
-
-## Purpose
-Discover mapped top-level windows on Linux Wayland sessions via compositor adapters (Cosmic first), with graceful no-op when unsupported.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Wayland top-level window enumeration
 
@@ -29,6 +24,8 @@ On Linux Wayland sessions, the system SHALL attempt to enumerate mapped top-leve
 - **WHEN** foreign-toplevel binding succeeds but Cosmic workspace enrichment fails, times out, or is not advertised
 - **THEN** the assistant SHALL keep title/`app_id` window records without workspace indices and SHALL NOT fail the assistant command
 
+## ADDED Requirements
+
 ### Requirement: Cosmic workspace enrichment stays isolated
 
 Cosmic-specific workspace protocol details SHALL remain behind the Linux Wayland platform adapter (`wayland_windows` / related modules). Shared capture DTOs SHALL only see optional numeric `desktopWorkspace` (or equivalent), not Cosmic handles or protocol objects. Unsupported compositors SHALL no-op Cosmic enrichment.
@@ -37,12 +34,3 @@ Cosmic-specific workspace protocol details SHALL remain behind the Linux Wayland
 
 - **WHEN** the session is Wayland but Cosmic toplevel-info/workspace globals are not present
 - **THEN** Cosmic workspace enrichment SHALL no-op and foreign-toplevel (if any) SHALL proceed without Cosmic indices
-
-### Requirement: Compositor adapter isolation
-
-Wayland window enumeration SHALL be implemented behind a Linux platform adapter so Cosmic-specific protocol details do not leak into shared capture DTOs. Unsupported compositors SHALL no-op and rely on process + `.desktop` classification.
-
-#### Scenario: Unsupported Wayland compositor
-
-- **WHEN** the session is Wayland but no known adapter can list toplevels
-- **THEN** window enumeration from the Wayland adapter SHALL yield an empty list and discovery SHALL degrade per `window-anchored-discovery` process fallback rules

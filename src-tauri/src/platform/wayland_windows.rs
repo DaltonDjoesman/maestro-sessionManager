@@ -1,14 +1,22 @@
 //! Short-lived Wayland foreign-toplevel snapshot for window-anchored discovery.
 //! Soft-fails (empty list) when the compositor denies the protocol or times out.
+//! Cosmic workspace enrichment uses `zcosmic_toplevel_info_v1` + `ext_workspace_manager_v1`
+//! when advertised; soft-fails leave `desktop` unset (never fake index `0`).
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use cosmic_protocols::toplevel_info::v1::client::{
+    zcosmic_toplevel_handle_v1, zcosmic_toplevel_info_v1,
+};
 use wayland_client::{
     protocol::wl_registry, Connection, Dispatch, Proxy, QueueHandle,
 };
 use wayland_protocols::ext::foreign_toplevel_list::v1::client::{
     ext_foreign_toplevel_handle_v1, ext_foreign_toplevel_list_v1,
+};
+use wayland_protocols::ext::workspace::v1::client::{
+    ext_workspace_group_handle_v1, ext_workspace_handle_v1, ext_workspace_manager_v1,
 };
 
 use super::workspace::WindowRecord;
@@ -27,14 +35,79 @@ pub fn load_wayland_foreign_toplevel() -> Vec<WindowRecord> {
     }
 }
 
-/// Cosmic `zcosmic_toplevel_info_v1` can expose workspace handles, but mapping those
-/// handles to a stable 0-based index needs the Cosmic workspace protocol as well.
-/// Soft-fail for now: leave `desktop` unchanged (typically 0 from foreign-toplevel).
+/// Soft-fail Cosmic workspace attachment for already-collected records.
+///
+/// Live enrichment runs inside the Wayland snapshot (`enrich_cosmic_workspaces`).
+/// This entry point is for callers/tests without a compositor connection: it leaves
+/// records unchanged (workspace stays unset when `None`).
 pub fn try_attach_cosmic_workspace_metadata(records: &mut [WindowRecord]) {
     let _ = records;
-    // Spike confirmed Cosmic advertises `zcosmic_toplevel_info_v1` to unprivileged
-    // clients; workspace index attachment is deferred to avoid pulling Cosmic
-    // workspace protocol wiring into this change. Capture remains usable flat.
+}
+
+/// Build a stable 0-based index map from workspace handle protocol IDs in announcement order.
+/// First-seen handle → `0`, next new handle → `1`, …. Duplicate IDs keep their first index.
+pub fn workspace_handle_index_map(handle_ids_in_order: &[u32]) -> HashMap<u32, u32> {
+    let mut map = HashMap::new();
+    for &id in handle_ids_in_order {
+        let next = map.len() as u32;
+        map.entry(id).or_insert(next);
+    }
+    map
+}
+
+/// Resolve a 0-based workspace index for a toplevel that entered one or more workspaces.
+/// Prefers the lowest index when the toplevel is on multiple workspaces (sticky).
+pub fn resolve_workspace_index(map: &HashMap<u32, u32>, entered_handle_ids: &[u32]) -> Option<u32> {
+    entered_handle_ids
+        .iter()
+        .filter_map(|id| map.get(id).copied())
+        .min()
+}
+
+/// Match Cosmic enrichment rows onto foreign-toplevel `WindowRecord`s by title/`app_id`
+/// (production association uses `get_cosmic_toplevel` foreign-handle linkage in the snapshot).
+pub fn apply_cosmic_workspace_to_records(
+    records: &mut [WindowRecord],
+    enrichments: &[CosmicWorkspaceEnrichment],
+) {
+    for enrichment in enrichments {
+        if let Some(rec) = match_record_by_title_app_id(records, enrichment) {
+            if rec.desktop.is_none() {
+                rec.desktop = enrichment.desktop;
+            }
+        }
+    }
+}
+
+/// Fixture-friendly Cosmic workspace row used by pure matching helpers / tests.
+#[derive(Debug, Clone)]
+pub struct CosmicWorkspaceEnrichment {
+    pub title: Option<String>,
+    pub app_id: Option<String>,
+    pub desktop: Option<u32>,
+}
+
+fn match_record_by_title_app_id<'a>(
+    records: &'a mut [WindowRecord],
+    enrichment: &CosmicWorkspaceEnrichment,
+) -> Option<&'a mut WindowRecord> {
+    if let Some(app_id) = enrichment.app_id.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(idx) = records
+            .iter()
+            .position(|r| r.app_id.as_deref() == Some(app_id) && r.desktop.is_none())
+        {
+            return Some(&mut records[idx]);
+        }
+    }
+    if let Some(title) = enrichment.title.as_deref().filter(|s| !s.is_empty()) {
+        if let Some(idx) = records
+            .iter()
+            .position(|r| r.title == title && r.desktop.is_none())
+        {
+            return Some(&mut records[idx]);
+        }
+    }
+    None
 }
 
 fn snapshot_foreign_toplevels() -> Result<Vec<WindowRecord>, String> {
@@ -70,14 +143,85 @@ fn snapshot_foreign_toplevels() -> Result<Vec<WindowRecord>, String> {
         }
     }
 
-    // Optional Cosmic enrichment soft-fails today (see try_attach_cosmic_workspace_metadata).
-    let mut records: Vec<WindowRecord> = state
+    if let Err(err) = enrich_cosmic_workspaces(&mut event_queue, &mut state, deadline) {
+        eprintln!("[maestro] cosmic workspace soft-fail: {err}");
+    }
+
+    let records: Vec<WindowRecord> = state
         .handles
         .values()
         .filter_map(handle_info_to_record)
         .collect();
-    try_attach_cosmic_workspace_metadata(&mut records);
     Ok(records)
+}
+
+/// Bind Cosmic toplevel-info + ext-workspace, associate via `get_cosmic_toplevel`, set
+/// `HandleInfo.desktop`. Soft-fails with `Err` when globals are missing or time out.
+fn enrich_cosmic_workspaces(
+    event_queue: &mut wayland_client::EventQueue<SnapshotState>,
+    state: &mut SnapshotState,
+    deadline: Instant,
+) -> Result<(), String> {
+    let (info, version) = state
+        .cosmic_info
+        .clone()
+        .ok_or_else(|| "zcosmic_toplevel_info_v1 not advertised".to_string())?;
+
+    if state.ext_workspace_mgr.is_none() {
+        return Err("ext_workspace_manager_v1 not advertised".into());
+    }
+
+    // Collect workspace announcements first.
+    while Instant::now() < deadline && !state.workspace_done {
+        event_queue
+            .roundtrip(state)
+            .map_err(|e| format!("workspace roundtrip: {e}"))?;
+        if !state.workspace_order.is_empty() {
+            // One more pass for late workspace events / done.
+            let _ = event_queue.roundtrip(state);
+            break;
+        }
+    }
+
+    state.workspace_index = workspace_handle_index_map(&state.workspace_order);
+    if state.workspace_index.is_empty() {
+        return Err("no ext workspaces announced".into());
+    }
+
+    if version < 2 {
+        return Err("zcosmic_toplevel_info_v1 version < 2 (need get_cosmic_toplevel)".into());
+    }
+
+    let qh = event_queue.handle();
+    let foreign_proxies: Vec<_> = state._proxies.clone();
+    for foreign in &foreign_proxies {
+        let foreign_id = foreign.id().protocol_id();
+        let cosmic = info.get_cosmic_toplevel(foreign, &qh, foreign_id);
+        state._cosmic_proxies.push(cosmic);
+        state.cosmic_workspaces.entry(foreign_id).or_default();
+    }
+
+    while Instant::now() < deadline {
+        event_queue
+            .roundtrip(state)
+            .map_err(|e| format!("cosmic toplevel roundtrip: {e}"))?;
+        let any_ws = state
+            .cosmic_workspaces
+            .values()
+            .any(|ids| !ids.is_empty());
+        if any_ws || state.cosmic_done {
+            let _ = event_queue.roundtrip(state);
+            break;
+        }
+    }
+
+    for (foreign_id, ws_ids) in &state.cosmic_workspaces {
+        if let Some(info) = state.handles.get_mut(foreign_id) {
+            info.desktop = resolve_workspace_index(&state.workspace_index, ws_ids);
+        }
+    }
+
+    Ok(())
 }
 
 fn handle_info_to_record(info: &HandleInfo) -> Option<WindowRecord> {
@@ -91,7 +235,7 @@ fn handle_info_to_record(info: &HandleInfo) -> Option<WindowRecord> {
     Some(WindowRecord {
         // Foreign-toplevel does not expose PID; title/app_id matching covers workers.
         pid: 0,
-        desktop: info.desktop.unwrap_or(0),
+        desktop: info.desktop,
         title,
         app_id: info.app_id.clone(),
     })
@@ -100,9 +244,20 @@ fn handle_info_to_record(info: &HandleInfo) -> Option<WindowRecord> {
 #[derive(Default)]
 struct SnapshotState {
     list: Option<ext_foreign_toplevel_list_v1::ExtForeignToplevelListV1>,
+    cosmic_info: Option<(zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1, u32)>,
+    ext_workspace_mgr: Option<ext_workspace_manager_v1::ExtWorkspaceManagerV1>,
     handles: HashMap<u32, HandleInfo>,
-    /// Keep proxies alive for the snapshot duration.
+    /// Keep foreign-toplevel proxies alive for the snapshot duration.
     _proxies: Vec<ext_foreign_toplevel_handle_v1::ExtForeignToplevelHandleV1>,
+    _cosmic_proxies: Vec<zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1>,
+    _ext_ws_groups: Vec<ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1>,
+    _ext_ws_handles: Vec<ext_workspace_handle_v1::ExtWorkspaceHandleV1>,
+    /// foreign protocol_id → Cosmic workspace handle protocol IDs entered.
+    cosmic_workspaces: HashMap<u32, Vec<u32>>,
+    workspace_order: Vec<u32>,
+    workspace_index: HashMap<u32, u32>,
+    workspace_done: bool,
+    cosmic_done: bool,
 }
 
 #[derive(Default, Clone)]
@@ -128,15 +283,36 @@ impl Dispatch<wl_registry::WlRegistry, ()> for SnapshotState {
             version,
         } = event
         {
-            if interface == "ext_foreign_toplevel_list_v1" {
-                let list = registry
-                    .bind::<ext_foreign_toplevel_list_v1::ExtForeignToplevelListV1, _, _>(
-                        name,
-                        version.min(1),
-                        qh,
-                        (),
-                    );
-                state.list = Some(list);
+            match interface.as_str() {
+                "ext_foreign_toplevel_list_v1" => {
+                    let list = registry
+                        .bind::<ext_foreign_toplevel_list_v1::ExtForeignToplevelListV1, _, _>(
+                            name,
+                            version.min(1),
+                            qh,
+                            (),
+                        );
+                    state.list = Some(list);
+                }
+                "zcosmic_toplevel_info_v1" => {
+                    let ver = version.min(3);
+                    let info = registry
+                        .bind::<zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1, _, _>(
+                            name, ver, qh, (),
+                        );
+                    state.cosmic_info = Some((info, ver));
+                }
+                "ext_workspace_manager_v1" => {
+                    let mgr = registry
+                        .bind::<ext_workspace_manager_v1::ExtWorkspaceManagerV1, _, _>(
+                            name,
+                            version.min(1),
+                            qh,
+                            (),
+                        );
+                    state.ext_workspace_mgr = Some(mgr);
+                }
+                _ => {}
             }
         }
     }
@@ -197,6 +373,134 @@ impl Dispatch<ext_foreign_toplevel_handle_v1::ExtForeignToplevelHandleV1, ()> fo
     }
 }
 
+impl Dispatch<zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1, ()> for SnapshotState {
+    fn event(
+        state: &mut Self,
+        _: &zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1,
+        event: zcosmic_toplevel_info_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            zcosmic_toplevel_info_v1::Event::Done => {
+                state.cosmic_done = true;
+            }
+            zcosmic_toplevel_info_v1::Event::Toplevel { toplevel } => {
+                // Version 1 path: keep proxy alive; matching falls back to title/app_id
+                // via events on the handle (no foreign association). Soft-skip for v1.
+                state._cosmic_proxies.push(toplevel);
+            }
+            zcosmic_toplevel_info_v1::Event::Finished => {}
+            _ => {}
+        }
+    }
+
+    wayland_client::event_created_child!(SnapshotState, zcosmic_toplevel_info_v1::ZcosmicToplevelInfoV1, [
+        zcosmic_toplevel_info_v1::EVT_TOPLEVEL_OPCODE => (zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1, 0u32)
+    ]);
+}
+
+impl Dispatch<zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1, u32> for SnapshotState {
+    fn event(
+        state: &mut Self,
+        _: &zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1,
+        event: zcosmic_toplevel_handle_v1::Event,
+        foreign_id: &u32,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            zcosmic_toplevel_handle_v1::Event::ExtWorkspaceEnter { workspace } => {
+                let ws_id = workspace.id().protocol_id();
+                state
+                    .cosmic_workspaces
+                    .entry(*foreign_id)
+                    .or_default()
+                    .push(ws_id);
+            }
+            zcosmic_toplevel_handle_v1::Event::ExtWorkspaceLeave { workspace } => {
+                let ws_id = workspace.id().protocol_id();
+                if let Some(ids) = state.cosmic_workspaces.get_mut(foreign_id) {
+                    ids.retain(|id| *id != ws_id);
+                }
+            }
+            zcosmic_toplevel_handle_v1::Event::WorkspaceEnter { workspace } => {
+                // Deprecated cosmic workspace handle; map by protocol id if present in index.
+                let ws_id = workspace.id().protocol_id();
+                state
+                    .cosmic_workspaces
+                    .entry(*foreign_id)
+                    .or_default()
+                    .push(ws_id);
+            }
+            zcosmic_toplevel_handle_v1::Event::WorkspaceLeave { workspace } => {
+                let ws_id = workspace.id().protocol_id();
+                if let Some(ids) = state.cosmic_workspaces.get_mut(foreign_id) {
+                    ids.retain(|id| *id != ws_id);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Dispatch<ext_workspace_manager_v1::ExtWorkspaceManagerV1, ()> for SnapshotState {
+    fn event(
+        state: &mut Self,
+        _: &ext_workspace_manager_v1::ExtWorkspaceManagerV1,
+        event: ext_workspace_manager_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        match event {
+            ext_workspace_manager_v1::Event::WorkspaceGroup { workspace_group } => {
+                state._ext_ws_groups.push(workspace_group);
+            }
+            ext_workspace_manager_v1::Event::Workspace { workspace } => {
+                let id = workspace.id().protocol_id();
+                state.workspace_order.push(id);
+                state._ext_ws_handles.push(workspace);
+            }
+            ext_workspace_manager_v1::Event::Done => {
+                state.workspace_done = true;
+            }
+            ext_workspace_manager_v1::Event::Finished => {}
+            _ => {}
+        }
+    }
+
+    wayland_client::event_created_child!(SnapshotState, ext_workspace_manager_v1::ExtWorkspaceManagerV1, [
+        ext_workspace_manager_v1::EVT_WORKSPACE_GROUP_OPCODE => (ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1, ()),
+        ext_workspace_manager_v1::EVT_WORKSPACE_OPCODE => (ext_workspace_handle_v1::ExtWorkspaceHandleV1, ())
+    ]);
+}
+
+impl Dispatch<ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1, ()> for SnapshotState {
+    fn event(
+        _: &mut Self,
+        _: &ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1,
+        _: ext_workspace_group_handle_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+    }
+}
+
+impl Dispatch<ext_workspace_handle_v1::ExtWorkspaceHandleV1, ()> for SnapshotState {
+    fn event(
+        _: &mut Self,
+        _: &ext_workspace_handle_v1::ExtWorkspaceHandleV1,
+        _: ext_workspace_handle_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,11 +516,11 @@ mod tests {
         let record = handle_info_to_record(&info).expect("record");
         assert_eq!(record.title, "Today - TickTick");
         assert_eq!(record.pid, 0);
-        assert_eq!(record.desktop, 2);
+        assert_eq!(record.desktop, Some(2));
     }
 
     #[test]
-    fn handle_info_falls_back_to_app_id() {
+    fn handle_info_falls_back_to_app_id_without_faking_workspace_zero() {
         let info = HandleInfo {
             title: None,
             app_id: Some("cursor".into()),
@@ -225,7 +529,7 @@ mod tests {
         };
         let record = handle_info_to_record(&info).expect("record");
         assert_eq!(record.title, "cursor");
-        assert_eq!(record.desktop, 0);
+        assert_eq!(record.desktop, None);
     }
 
     #[test]
@@ -235,15 +539,66 @@ mod tests {
     }
 
     #[test]
-    fn cosmic_workspace_attach_is_soft_noop() {
+    fn cosmic_workspace_attach_soft_fail_leaves_desktop_unset() {
         let mut records = vec![WindowRecord {
             pid: 0,
-            desktop: 0,
+            desktop: None,
             title: "Firefox".into(),
             app_id: Some("firefox".into()),
         }];
         try_attach_cosmic_workspace_metadata(&mut records);
-        assert_eq!(records[0].desktop, 0);
+        assert_eq!(records[0].desktop, None);
+    }
+
+    #[test]
+    fn workspace_handle_index_map_assigns_stable_zero_based_order() {
+        let map = workspace_handle_index_map(&[10, 20, 10, 30]);
+        assert_eq!(map.get(&10), Some(&0));
+        assert_eq!(map.get(&20), Some(&1));
+        assert_eq!(map.get(&30), Some(&2));
+        assert_eq!(map.len(), 3);
+    }
+
+    #[test]
+    fn resolve_workspace_index_prefers_lowest_when_multi() {
+        let map = workspace_handle_index_map(&[10, 20, 30]);
+        assert_eq!(resolve_workspace_index(&map, &[30, 10]), Some(0));
+        assert_eq!(resolve_workspace_index(&map, &[20]), Some(1));
+        assert_eq!(resolve_workspace_index(&map, &[99]), None);
+        assert_eq!(resolve_workspace_index(&map, &[]), None);
+    }
+
+    #[test]
+    fn apply_cosmic_enrichment_matches_by_app_id_and_title() {
+        let mut records = vec![
+            WindowRecord {
+                pid: 0,
+                desktop: None,
+                title: "Today - TickTick".into(),
+                app_id: Some("ticktick".into()),
+            },
+            WindowRecord {
+                pid: 0,
+                desktop: None,
+                title: "Slack".into(),
+                app_id: Some("Slack".into()),
+            },
+        ];
+        let enrichments = vec![
+            CosmicWorkspaceEnrichment {
+                title: None,
+                app_id: Some("ticktick".into()),
+                desktop: Some(0),
+            },
+            CosmicWorkspaceEnrichment {
+                title: Some("Slack".into()),
+                app_id: None,
+                desktop: Some(1),
+            },
+        ];
+        apply_cosmic_workspace_to_records(&mut records, &enrichments);
+        assert_eq!(records[0].desktop, Some(0));
+        assert_eq!(records[1].desktop, Some(1));
     }
 
     #[test]
@@ -254,13 +609,13 @@ mod tests {
         let wayland = vec![
             WindowRecord {
                 pid: 0,
-                desktop: 0,
+                desktop: None,
                 title: "Today - TickTick".into(),
                 app_id: Some("ticktick".into()),
             },
             WindowRecord {
                 pid: 0,
-                desktop: 1,
+                desktop: Some(1),
                 title: "Slack".into(),
                 app_id: Some("Slack".into()),
             },
@@ -268,5 +623,30 @@ mod tests {
         let merged = merge_window_sources([WindowSource::WaylandForeignToplevel(wayland)]);
         assert!(uses_window_first_discovery(&merged));
         assert_eq!(merged.windows().len(), 2);
+    }
+
+    #[test]
+    #[ignore = "requires live Cosmic Wayland session"]
+    fn live_cosmic_workspaces_attach_distinct_indices() {
+        let records = load_wayland_foreign_toplevel();
+        assert!(!records.is_empty(), "expected foreign-toplevel windows");
+        let with_ws: Vec<_> = records.iter().filter(|r| r.desktop.is_some()).collect();
+        println!(
+            "[live] wayland windows={} with_workspace={}",
+            records.len(),
+            with_ws.len()
+        );
+        for r in records.iter().take(12) {
+            println!(
+                "  desktop={:?} app_id={:?} title={}",
+                r.desktop, r.app_id, r.title
+            );
+        }
+        let indices: std::collections::BTreeSet<_> =
+            with_ws.iter().filter_map(|r| r.desktop).collect();
+        assert!(
+            !indices.is_empty(),
+            "expected at least one Cosmic workspace index attached"
+        );
     }
 }

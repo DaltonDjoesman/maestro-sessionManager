@@ -70,30 +70,13 @@ fn run_output_first_line(cmd: &str, args: &[&str]) -> Option<String> {
 }
 
 fn infer_family_from_desktop_id(id: &str) -> Option<BrowserFamily> {
-    let id = id.to_lowercase();
-    if id.contains("firefox")
-        || id.contains("librewolf")
-        || id.contains("waterfox")
-        || id.contains("floorp")
-    {
-        return Some(BrowserFamily::Firefox);
-    }
-    if id.ends_with(".desktop") {
-        return Some(BrowserFamily::ChromiumLike);
-    }
-    None
+    // Desktop ids often look like `firefox.desktop` / `google-chrome.desktop` — reuse detect markers.
+    use crate::browser::detect_browser_family;
+    detect_browser_family(id.trim_end_matches(".desktop")).or_else(|| detect_browser_family(id))
 }
 
 fn infer_family_from_executable(exe: &str) -> Option<BrowserFamily> {
-    let b = std::path::Path::new(exe)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_else(|| exe.to_lowercase());
-    if b.contains("firefox") || b.contains("librewolf") {
-        return Some(BrowserFamily::Firefox);
-    }
-    Some(BrowserFamily::ChromiumLike)
+    crate::browser::detect_browser_family(exe)
 }
 
 #[cfg(target_os = "linux")]
@@ -163,6 +146,36 @@ mod tests {
         assert_eq!(
             parse_desktop_exec(s).as_deref(),
             Some("/usr/lib/firefox/firefox")
+        );
+    }
+
+    #[test]
+    fn hint_family_agrees_with_detect_on_known_executables() {
+        use crate::browser::detect_browser_family;
+        for exe in [
+            "/usr/bin/firefox",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/vivaldi-bin",
+            "/usr/bin/code",
+        ] {
+            assert_eq!(
+                infer_family_from_executable(exe),
+                detect_browser_family(exe),
+                "mismatch for {exe}"
+            );
+        }
+    }
+
+    #[test]
+    fn hint_desktop_id_does_not_default_unknown_to_chromium() {
+        assert_eq!(infer_family_from_desktop_id("code.desktop"), None);
+        assert_eq!(
+            infer_family_from_desktop_id("firefox.desktop"),
+            Some(BrowserFamily::Firefox)
+        );
+        assert_eq!(
+            infer_family_from_desktop_id("google-chrome.desktop"),
+            Some(BrowserFamily::ChromiumLike)
         );
     }
 }

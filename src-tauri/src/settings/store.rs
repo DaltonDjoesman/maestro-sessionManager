@@ -92,7 +92,7 @@ impl SettingsStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::model::{BrowserFamily, LogVerbosity, UiTheme, CURRENT_SCHEMA_VERSION};
+    use crate::settings::model::{BrowserFamily, UiTheme, CURRENT_SCHEMA_VERSION};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -154,5 +154,35 @@ mod tests {
 
         let loaded = store.load().expect("load persisted");
         assert_eq!(loaded.profiles_root, settings.profiles_root);
+    }
+
+    #[test]
+    fn load_legacy_assisted_flag_and_save_omits_it() {
+        let store = temp_store();
+        let parent = store.path().parent().unwrap();
+        fs::create_dir_all(parent).unwrap();
+        fs::write(
+            store.path(),
+            r#"{
+                "schema_version": 1,
+                "profiles_root": "/tmp/maestro-legacy-profiles",
+                "default_browser_executable": null,
+                "default_browser_family": null,
+                "logging_verbosity": "info",
+                "theme": "system",
+                "assisted_profile_capture_enabled": false
+            }"#,
+        )
+        .unwrap();
+
+        let loaded = store.load().expect("load legacy").normalize();
+        assert_eq!(loaded.profiles_root, "/tmp/maestro-legacy-profiles");
+
+        store.save(&loaded).expect("save");
+        let written = fs::read_to_string(store.path()).expect("read saved");
+        assert!(
+            !written.contains("assisted_profile_capture_enabled"),
+            "saved settings must omit legacy assisted flag, got: {written}"
+        );
     }
 }

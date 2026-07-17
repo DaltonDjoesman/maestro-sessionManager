@@ -74,13 +74,6 @@ impl SettingsManager {
         Ok(new_settings)
     }
 
-    /// Re-save the in-memory settings snapshot (reserved for explicit flush paths).
-    #[allow(dead_code)]
-    pub fn persist(&self) -> Result<(), SettingsError> {
-        let settings = self.get();
-        self.store.save(&settings)
-    }
-
     pub fn persist_if_absent(&self) -> Result<bool, SettingsError> {
         let settings = self.get();
         self.store.save_if_absent(&settings)

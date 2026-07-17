@@ -17,6 +17,4 @@ export interface ApplicationSettings {
   default_browser_family: BrowserFamily | null;
   logging_verbosity: LogVerbosity;
   theme: UiTheme;
-  /** When false, running-apps assistant is hidden and list command returns []. */
-  assisted_profile_capture_enabled: boolean;
 }

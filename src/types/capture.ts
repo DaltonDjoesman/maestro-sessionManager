@@ -28,14 +28,25 @@ export function displayNameOf(c: RunningAppCandidate): string {
   return c.label;
 }
 
-const EDITOR_BASES = new Set(["cursor", "code", "code-oss", "codium", "obsidian"]);
+/** Mirror of Rust `editors::EDITOR_BASENAMES` — keep membership identical. */
+export const EDITOR_BASES = new Set([
+  "cursor",
+  "code",
+  "code-oss",
+  "codium",
+  "obsidian",
+]);
+
+export function isKnownEditorBasename(basenameLower: string): boolean {
+  return EDITOR_BASES.has(basenameLower);
+}
 
 /** Stable row key aligned with backend dedupe (multi-window / workspace). */
 export function candidateKey(c: RunningAppCandidate): string {
   const base = c.executable.split("/").pop()?.toLowerCase() ?? "";
   const ws = c.desktopWorkspace != null ? String(c.desktopWorkspace) : "none";
   const title = c.windowTitle?.trim() ?? "";
-  if (EDITOR_BASES.has(base)) {
+  if (isKnownEditorBasename(base)) {
     const folder = c.cwdHint?.trim() ?? "";
     return `${c.executable}\x1f${folder}\x1f${ws}\x1f${title}`;
   }

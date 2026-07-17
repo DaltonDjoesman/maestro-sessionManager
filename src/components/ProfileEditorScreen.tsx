@@ -6,12 +6,12 @@ import {
   inferBrowserFamily,
   isBrowserApp,
   normalizeApplicationEntry,
-  normalizeBrowserUrlList,
   browserSettingsOf,
 } from "../browserDetect";
 import { ApplicationBrowserFields } from "./ApplicationBrowserFields";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "./RunningAppsCaptureList";
 import { RefreshIconButton } from "./RefreshIconButton";
+import { normalizeProfile, normalizeProfileForRun } from "../profileNormalize";
 import type { ActivateSessionResult } from "../types/activation";
 import type { RunningAppCandidate } from "../types/capture";
 import { candidateKey, sortByDisplayName } from "../types/capture";
@@ -40,29 +40,6 @@ interface ProfileEditorScreenProps {
 
 function cloneProfile(p: SessionProfile): SessionProfile {
   return JSON.parse(JSON.stringify(p)) as SessionProfile;
-}
-
-function normalizeProfile(p: SessionProfile): SessionProfile {
-  const applications = p.applications.map(normalizeApplicationEntry);
-  if (p.browser) {
-    const legacy = p.browser;
-    applications.unshift(
-      normalizeApplicationEntry({
-        executable: legacy.executable,
-        args: [],
-        cwd: null,
-        skip_if_running: null,
-        browser: {
-          family: legacy.family,
-          user_data_dir: legacy.user_data_dir,
-          firefox_profile: legacy.firefox_profile,
-          firefox_no_remote: legacy.firefox_no_remote,
-          urls: legacy.urls,
-        },
-      }),
-    );
-  }
-  return { ...p, browser: null, applications };
 }
 
 function appDisplayLabel(app: ApplicationLaunchEntry, index: number): string {
@@ -202,23 +179,8 @@ export function ProfileEditorScreen({
     });
   };
 
-  const profileForPersist = (source: SessionProfile): SessionProfile => {
-    const normalized = normalizeProfile(source);
-    return {
-      ...normalized,
-      cleanup: null,
-      applications: normalized.applications.map((app) => {
-        if (!app.browser) return app;
-        return {
-          ...app,
-          browser: {
-            ...app.browser,
-            urls: normalizeBrowserUrlList(app.browser.urls ?? []),
-          },
-        };
-      }),
-    };
-  };
+  const profileForPersist = (source: SessionProfile): SessionProfile =>
+    normalizeProfileForRun(source);
 
   const save = async () => {
     if (!profile) return;

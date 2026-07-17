@@ -3,12 +3,6 @@
 use std::collections::HashMap;
 use std::process::Command;
 
-/// `XDG_SESSION_TYPE` value, or `"unknown"`.
-#[allow(dead_code)]
-pub fn session_type() -> String {
-    std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".into())
-}
-
 /// One mapped top-level window from a window source (`wmctrl`, Wayland foreign-toplevel, …).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WindowRecord {

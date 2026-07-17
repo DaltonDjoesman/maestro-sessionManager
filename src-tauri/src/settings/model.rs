@@ -43,9 +43,6 @@ pub struct ApplicationSettings {
     pub default_browser_family: Option<BrowserFamily>,
     pub logging_verbosity: LogVerbosity,
     pub theme: UiTheme,
-    /// When true, UI may offer “running apps” assistance in the profile editor (`assisted-profile-capture` spec).
-    #[serde(default)]
-    pub assisted_profile_capture_enabled: bool,
 }
 
 impl ApplicationSettings {
@@ -57,9 +54,8 @@ impl ApplicationSettings {
         self.schema_version <= SUPPORTED_SCHEMA_VERSION
     }
 
-    /// Assisted capture is always enabled; normalize persisted settings from older builds.
-    pub fn normalize(mut self) -> Self {
-        self.assisted_profile_capture_enabled = true;
+    /// Identity normalize; legacy keys (e.g. `assisted_profile_capture_enabled`) are ignored on deserialize.
+    pub fn normalize(self) -> Self {
         self
     }
 }
@@ -77,7 +73,6 @@ mod tests {
             default_browser_family: Some(BrowserFamily::Firefox),
             logging_verbosity: LogVerbosity::Info,
             theme: UiTheme::System,
-            assisted_profile_capture_enabled: false,
         };
 
         let json = serde_json::to_string(&settings).expect("serialize");
@@ -86,7 +81,7 @@ mod tests {
         assert!(json.contains("\"default_browser_executable\""));
         assert!(json.contains("\"logging_verbosity\":\"info\""));
         assert!(json.contains("\"theme\":\"system\""));
-        assert!(json.contains("\"assisted_profile_capture_enabled\":false"));
+        assert!(!json.contains("assisted_profile_capture_enabled"));
     }
 
     #[test]
@@ -109,20 +104,22 @@ mod tests {
         );
         assert_eq!(settings.logging_verbosity, LogVerbosity::Warn);
         assert_eq!(settings.theme, UiTheme::Dark);
-        assert!(!settings.assisted_profile_capture_enabled);
     }
 
     #[test]
-    fn deserializes_settings_without_assistant_flag_defaults_false() {
+    fn ignores_legacy_assisted_profile_capture_enabled_on_deserialize() {
         let raw = r#"{
             "schema_version": 1,
             "profiles_root": "/tmp/p",
             "default_browser_executable": null,
             "default_browser_family": null,
             "logging_verbosity": "info",
-            "theme": "system"
+            "theme": "system",
+            "assisted_profile_capture_enabled": false
         }"#;
         let s: ApplicationSettings = serde_json::from_str(raw).expect("ok");
-        assert!(!s.assisted_profile_capture_enabled);
+        assert_eq!(s.profiles_root, "/tmp/p");
+        let json = serde_json::to_string(&s).expect("serialize");
+        assert!(!json.contains("assisted_profile_capture_enabled"));
     }
 }

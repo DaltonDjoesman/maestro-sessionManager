@@ -5,6 +5,7 @@ use std::path::Path;
 
 use sysinfo::{ProcessesToUpdate, System};
 
+use crate::editors::is_known_editor_basename;
 use crate::profiles::ApplicationLaunchEntry;
 
 /// Lowercased basename used for matching (e.g. `/usr/bin/Cursor` → `cursor`).
@@ -54,9 +55,8 @@ pub fn entry_skip_detail(entry: &ApplicationLaunchEntry, running: &HashSet<Strin
 }
 
 fn editor_should_relaunch_with_target(entry: &ApplicationLaunchEntry) -> bool {
-    const EDITORS: &[&str] = &["cursor", "code", "code-oss", "codium", "obsidian"];
     let base = executable_basename(&entry.executable);
-    if !EDITORS.contains(&base.as_str()) {
+    if !is_known_editor_basename(&base) {
         return false;
     }
     entry.args.iter().any(|arg| {

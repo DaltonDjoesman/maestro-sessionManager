@@ -8,6 +8,7 @@ import {
   savePinnedPaths,
 } from "../sessionCatalogUi";
 import type { ActivateSessionResult } from "../types/activation";
+import { normalizeProfileForRun } from "../profileNormalize";
 import type {
   DuplicateProfileResult,
   ProfileCatalogEntry,
@@ -18,13 +19,6 @@ interface SessionHubPageProps {
   profilesRoot: string;
   onEdit: (filePath: string) => void;
   onActivated: (label: string) => void;
-}
-
-function normalizeProfileForRun(p: SessionProfile): SessionProfile {
-  const browser = p.browser
-    ? { ...p.browser, urls: p.browser.urls.map((u) => u.trim()).filter((u) => u.length > 0) }
-    : null;
-  return { ...p, browser, cleanup: null };
 }
 
 export function SessionHubPage({ profilesRoot, onEdit, onActivated }: SessionHubPageProps) {

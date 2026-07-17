@@ -13,11 +13,6 @@ export type ProfileCatalogEntry = {
   hasBrowser?: boolean | null;
 };
 
-export type CreateProfileResult = {
-  filePath: string;
-  profile: SessionProfile;
-};
-
 export type DuplicateProfileResult = {
   filePath: string;
   profile: SessionProfile;

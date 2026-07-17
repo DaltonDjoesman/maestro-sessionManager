@@ -1,7 +1,6 @@
 //! Orchestrate browser then applications; emit structured step summaries (`session-activation` spec).
 
 use std::path::Path;
-use std::time::Duration;
 
 use crate::process_launcher::{spawn_command, spawn_launch_spec, LaunchSpec, SpawnOutcome};
 use crate::profiles::SessionProfile;
@@ -41,10 +40,6 @@ pub async fn activate_session_profile(
     };
 
     let mut steps = Vec::new();
-    let delay_after_success = Duration::ZERO;
-
-    let mut app_index: usize = 0;
-    let total_apps = profile.applications.len();
 
     for item in plan {
         match item {
@@ -86,7 +81,6 @@ pub async fn activate_session_profile(
                         detail: Some(detail),
                         pid: None,
                     });
-                    app_index += 1;
                     continue;
                 }
 
@@ -102,21 +96,6 @@ pub async fn activate_session_profile(
                     log_line(f, &format!("app {} outcome: {outcome:?}", spec.executable));
                 }
                 steps.push(application_row(&spec, &outcome));
-
-                let success = matches!(outcome, SpawnOutcome::Started { .. });
-                let more = app_index + 1 < total_apps;
-                if more && success && delay_after_success > Duration::ZERO {
-                    let running = crate::activation::skip::collect_running_executable_basenames();
-                    let any_following_spawn = profile.applications[app_index + 1..]
-                        .iter()
-                        .any(|e| {
-                            crate::activation::skip::entry_skip_detail(e, &running).is_none()
-                        });
-                    if any_following_spawn {
-                        tokio::time::sleep(delay_after_success).await;
-                    }
-                }
-                app_index += 1;
             }
         }
     }

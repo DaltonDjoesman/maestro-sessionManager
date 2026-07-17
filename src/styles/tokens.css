@@ -39,27 +39,14 @@
   --header-height: 48px;
   --transition-fast: 0.15s ease;
 
-  /* Legacy aliases */
+  /* Legacy aliases still referenced by App.css / components.css */
   --color-bg: var(--bg);
-  --color-bg-elevated: var(--surface);
-  --color-bg-sidebar: var(--surface);
   --color-surface: var(--surface);
-  --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  --color-border-subtle: var(--border);
   --color-text: var(--fg);
   --color-text-muted: var(--muted);
-  --color-text-faint: var(--muted);
   --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-muted: var(--accent-dim);
-  --color-activate: var(--success);
-  --color-activate-hover: oklch(78% 0.16 140);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
   --color-overlay: rgba(10, 10, 12, 0.85);
-  --shadow-card: var(--shadow-sm);
 }
 
 [data-theme="light"] {

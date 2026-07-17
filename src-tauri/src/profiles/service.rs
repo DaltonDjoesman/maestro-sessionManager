@@ -164,25 +164,7 @@ impl ProfileDirectory {
         Ok(())
     }
 
-    /// Duplicate with an automatic "(copy)" display name (unit-tested; UI uses the named variant).
-    #[allow(dead_code)]
-    pub fn duplicate_file(&self, user_path: &str) -> Result<DuplicateProfileResult, ProfileError> {
-        fs::create_dir_all(&self.root)?;
-        let mut profile = self.load_file(user_path)?;
-        profile.session_id = Uuid::new_v4().to_string();
-        profile.name = format!("{} (copy)", profile.name);
-        profile.schema_version = CURRENT_PROFILE_SCHEMA_VERSION;
-
-        let dest = self.root.join(format!("{}.json", profile.session_id));
-        profile.validate(&dest.to_string_lossy())?;
-        atomic_write_json(&dest, &profile)?;
-        Ok(DuplicateProfileResult {
-            file_path: dest.to_string_lossy().into_owned(),
-            profile,
-        })
-    }
-
-    /// Duplicate like [`Self::duplicate_file`], but set the new profile display name explicitly.
+    /// Duplicate a profile file under a new `session_id` with an explicit display name.
     pub fn duplicate_file_with_display_name(
         &self,
         user_path: &str,
@@ -403,7 +385,10 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let dir = ProfileDirectory::new(root.clone());
         let created = dir.create_profile().unwrap();
-        let dup = dir.duplicate_file(&created.file_path).unwrap();
+        let name = format!("{} (copy)", created.profile.name);
+        let dup = dir
+            .duplicate_file_with_display_name(&created.file_path, &name)
+            .unwrap();
         assert_ne!(dup.profile.session_id, created.profile.session_id);
         assert!(dup.profile.name.ends_with("(copy)"));
         assert_ne!(created.file_path, dup.file_path);

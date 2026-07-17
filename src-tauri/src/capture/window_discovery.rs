@@ -393,7 +393,6 @@ fn merge_candidate(best: &mut RunningAppCandidate, incoming: &RunningAppCandidat
 }
 
 fn candidate_dedupe_key(c: &RunningAppCandidate) -> String {
-    const EDITORS: &[&str] = &["cursor", "code", "code-oss", "codium", "obsidian"];
     let base = Path::new(&c.executable)
         .file_name()
         .and_then(|s| s.to_str())
@@ -404,7 +403,7 @@ fn candidate_dedupe_key(c: &RunningAppCandidate) -> String {
         .map(|w| w.to_string())
         .unwrap_or_else(|| "none".into());
     let title = c.window_title.as_deref().unwrap_or("");
-    if EDITORS.contains(&base.as_str()) {
+    if crate::editors::is_known_editor_basename(&base) {
         let folder = c.cwd_hint.as_deref().unwrap_or("");
         format!("{}\x1f{}\x1f{}\x1f{}", c.executable, folder, ws, title)
     } else {

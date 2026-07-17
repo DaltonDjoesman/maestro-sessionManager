@@ -20,13 +20,6 @@ export const pt = {
   },
 
   import: {
-    title: "Importar perfil",
-    hint: "Cola JSON de um perfil ou escolhe um ficheiro .json.",
-    displayName: "Nome do perfil",
-    jsonLabel: "JSON do perfil",
-    pickFile: "Escolher ficheiro…",
-    cancel: "Cancelar",
-    confirm: "Importar",
     invalidJson: "JSON inválido.",
   },
 
@@ -132,7 +125,6 @@ export const pt = {
     general: "Geral",
     sessions: "Sessões",
     browser: "Browser",
-    assistant: "Assistente",
     advanced: "Avançado",
     theme: "Tema",
     themeSystem: "Sistema",
@@ -145,9 +137,6 @@ export const pt = {
     browserFamilyNone: "—",
     chromium: "Chromium-like",
     firefox: "Firefox",
-    assistantHint:
-      "Quando activo, o editor pode sugerir aplicações em execução para adicionar ao perfil.",
-    assistantToggle: "Mostrar assistente de apps em execução no editor",
     logging: "Verbosidade dos logs",
     save: "Guardar definições",
     saving: "A guardar…",

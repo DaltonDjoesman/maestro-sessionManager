@@ -7,6 +7,7 @@ import {
   displayNameOf,
   filterByKind,
   groupRunningApps,
+  isKnownEditorBasename,
   windowSubtitle,
 } from "../types/capture";
 import type { RunningAppCandidate, RunningAppSection } from "../types/capture";
@@ -179,16 +180,10 @@ export function RunningAppsCaptureList({
 export function launchEntriesFromCandidates(chosen: RunningAppCandidate[]): ApplicationLaunchEntry[] {
   return chosen.map((c) => {
     const target = (c.cwdHint ?? "").trim();
-    const exeLower = c.executable.toLowerCase();
-    const vscodeLike =
-      exeLower.includes("/cursor") ||
-      exeLower.endsWith("/cursor") ||
-      exeLower.includes("code-oss") ||
-      exeLower.includes("vscodium") ||
-      exeLower.includes("/bin/code") ||
-      exeLower.endsWith("/code") ||
-      exeLower.includes("/codium") ||
-      exeLower.includes("obsidian");
+    const base =
+      c.executable.split(/[/\\]/).pop()?.toLowerCase() ?? c.executable.toLowerCase();
+    // Exact basename membership — mirrors Rust `editors::EDITOR_BASENAMES` (no substring heuristics).
+    const vscodeLike = isKnownEditorBasename(base);
     let args: string[] = [];
     let cwd: string | null = null;
     if (target.length > 0) {

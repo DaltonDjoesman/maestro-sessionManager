@@ -2,6 +2,7 @@ mod activation;
 mod browser;
 mod capture;
 mod clipboard;
+mod editors;
 mod platform;
 mod process_launcher;
 mod profiles;

@@ -242,8 +242,7 @@ pub(crate) fn cwd_hint_for_editor(
     cmd: &[std::ffi::OsString],
     window_title: Option<&str>,
 ) -> Option<String> {
-    const KNOWN: &[&str] = &["cursor", "code", "code-oss", "codium", "obsidian"];
-    if !KNOWN.iter().any(|e| *e == basename_lower) {
+    if !crate::editors::is_known_editor_basename(basename_lower) {
         return None;
     }
 

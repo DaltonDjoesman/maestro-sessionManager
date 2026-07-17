@@ -37,13 +37,6 @@ pub fn load_wayland_foreign_toplevel() -> Vec<WindowRecord> {
 
 /// Soft-fail Cosmic workspace attachment for already-collected records.
 ///
-/// Live enrichment runs inside the Wayland snapshot (`enrich_cosmic_workspaces`).
-/// This entry point is for callers/tests without a compositor connection: it leaves
-/// records unchanged (workspace stays unset when `None`).
-pub fn try_attach_cosmic_workspace_metadata(records: &mut [WindowRecord]) {
-    let _ = records;
-}
-
 /// Build a stable 0-based index map from workspace handle protocol IDs in announcement order.
 /// First-seen handle → `0`, next new handle → `1`, …. Duplicate IDs keep their first index.
 pub fn workspace_handle_index_map(handle_ids_in_order: &[u32]) -> HashMap<u32, u32> {
@@ -62,52 +55,6 @@ pub fn resolve_workspace_index(map: &HashMap<u32, u32>, entered_handle_ids: &[u3
         .iter()
         .filter_map(|id| map.get(id).copied())
         .min()
-}
-
-/// Match Cosmic enrichment rows onto foreign-toplevel `WindowRecord`s by title/`app_id`
-/// (production association uses `get_cosmic_toplevel` foreign-handle linkage in the snapshot).
-pub fn apply_cosmic_workspace_to_records(
-    records: &mut [WindowRecord],
-    enrichments: &[CosmicWorkspaceEnrichment],
-) {
-    for enrichment in enrichments {
-        if let Some(rec) = match_record_by_title_app_id(records, enrichment) {
-            if rec.desktop.is_none() {
-                rec.desktop = enrichment.desktop;
-            }
-        }
-    }
-}
-
-/// Fixture-friendly Cosmic workspace row used by pure matching helpers / tests.
-#[derive(Debug, Clone)]
-pub struct CosmicWorkspaceEnrichment {
-    pub title: Option<String>,
-    pub app_id: Option<String>,
-    pub desktop: Option<u32>,
-}
-
-fn match_record_by_title_app_id<'a>(
-    records: &'a mut [WindowRecord],
-    enrichment: &CosmicWorkspaceEnrichment,
-) -> Option<&'a mut WindowRecord> {
-    if let Some(app_id) = enrichment.app_id.as_deref().filter(|s| !s.is_empty()) {
-        if let Some(idx) = records
-            .iter()
-            .position(|r| r.app_id.as_deref() == Some(app_id) && r.desktop.is_none())
-        {
-            return Some(&mut records[idx]);
-        }
-    }
-    if let Some(title) = enrichment.title.as_deref().filter(|s| !s.is_empty()) {
-        if let Some(idx) = records
-            .iter()
-            .position(|r| r.title == title && r.desktop.is_none())
-        {
-            return Some(&mut records[idx]);
-        }
-    }
-    None
 }
 
 fn snapshot_foreign_toplevels() -> Result<Vec<WindowRecord>, String> {
@@ -539,18 +486,6 @@ mod tests {
     }
 
     #[test]
-    fn cosmic_workspace_attach_soft_fail_leaves_desktop_unset() {
-        let mut records = vec![WindowRecord {
-            pid: 0,
-            desktop: None,
-            title: "Firefox".into(),
-            app_id: Some("firefox".into()),
-        }];
-        try_attach_cosmic_workspace_metadata(&mut records);
-        assert_eq!(records[0].desktop, None);
-    }
-
-    #[test]
     fn workspace_handle_index_map_assigns_stable_zero_based_order() {
         let map = workspace_handle_index_map(&[10, 20, 10, 30]);
         assert_eq!(map.get(&10), Some(&0));
@@ -566,39 +501,6 @@ mod tests {
         assert_eq!(resolve_workspace_index(&map, &[20]), Some(1));
         assert_eq!(resolve_workspace_index(&map, &[99]), None);
         assert_eq!(resolve_workspace_index(&map, &[]), None);
-    }
-
-    #[test]
-    fn apply_cosmic_enrichment_matches_by_app_id_and_title() {
-        let mut records = vec![
-            WindowRecord {
-                pid: 0,
-                desktop: None,
-                title: "Today - TickTick".into(),
-                app_id: Some("ticktick".into()),
-            },
-            WindowRecord {
-                pid: 0,
-                desktop: None,
-                title: "Slack".into(),
-                app_id: Some("Slack".into()),
-            },
-        ];
-        let enrichments = vec![
-            CosmicWorkspaceEnrichment {
-                title: None,
-                app_id: Some("ticktick".into()),
-                desktop: Some(0),
-            },
-            CosmicWorkspaceEnrichment {
-                title: Some("Slack".into()),
-                app_id: None,
-                desktop: Some(1),
-            },
-        ];
-        apply_cosmic_workspace_to_records(&mut records, &enrichments);
-        assert_eq!(records[0].desktop, Some(0));
-        assert_eq!(records[1].desktop, Some(1));
     }
 
     #[test]

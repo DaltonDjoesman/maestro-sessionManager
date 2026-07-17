@@ -22,7 +22,7 @@ The backend SHALL provide a command (e.g. `preview_session_activation`) that ret
 
 ### Requirement: Dry-run UI is out of scope
 
-A dedicated dry-run UI (hub overflow, editor tab) is **not required** in the current release. The preview command exists for tooling and future UI.
+A dedicated dry-run UI (hub overflow, editor tab) SHALL NOT be required in the current release. The preview command exists for tooling and future UI.
 
 #### Scenario: No dry-run button required
 

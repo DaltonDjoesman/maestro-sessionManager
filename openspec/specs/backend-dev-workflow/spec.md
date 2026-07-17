@@ -1,4 +1,11 @@
-## ADDED Requirements
+# backend-dev-workflow Specification
+
+## Purpose
+
+Guidance and standards for Rust backend development workflows, including test-driven development, verification, and commit practices.
+
+## Requirements
+
 
 ### Requirement: Superpowers skills for backend implementation
 

@@ -147,17 +147,40 @@ impl WorkspaceIndex {
     }
 
     /// Match wmctrl title when PID is bogus (0/2) or points at a worker process.
+    ///
+    /// Returns a workspace only when every title match has a known desktop and
+    /// they all agree. Taking `.min()` across siblings (e.g. two Vivaldi windows
+    /// on different workspaces) previously mis-grouped them; also refuse to guess
+    /// when some matches still have `desktop=None`.
     pub fn workspace_for_title_hint(&self, hint: &str) -> Option<u32> {
         let hint = hint.trim();
         if hint.is_empty() {
             return None;
         }
         let lower = hint.to_lowercase();
-        self.windows
+        let matches: Vec<&WindowRecord> = self
+            .windows
             .iter()
             .filter(|w| w.title.to_lowercase().contains(&lower))
-            .filter_map(|w| w.desktop)
-            .min()
+            .collect();
+        if matches.is_empty() {
+            return None;
+        }
+        let mut desktops: Vec<u32> = Vec::with_capacity(matches.len());
+        for w in &matches {
+            let Some(d) = w.desktop else {
+                // Partial mapping among siblings → ambiguous.
+                return None;
+            };
+            desktops.push(d);
+        }
+        desktops.sort_unstable();
+        desktops.dedup();
+        if desktops.len() == 1 {
+            Some(desktops[0])
+        } else {
+            None
+        }
     }
 
     /// Match executable basename against window titles (e.g. `ticktick` → "TickTick").
@@ -313,6 +336,70 @@ mod tests {
             index.workspace_for_title_hint("Obsidian"),
             Some(5)
         );
+    }
+
+    #[test]
+    fn workspace_for_title_hint_ambiguous_multi_window_returns_none() {
+        let mut index = WorkspaceIndex::default();
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: Some(1),
+            title: "(3) WhatsApp - Vivaldi".into(),
+            app_id: Some("vivaldi-stable".into()),
+        });
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: Some(3),
+            title: "Cursor Grok 4.5: Uso Pro - Google Gemini - Vivaldi".into(),
+            app_id: Some("vivaldi-stable".into()),
+        });
+        // Must not pick .min() (workspace 1) when siblings disagree.
+        assert_eq!(index.workspace_for_title_hint("Vivaldi"), None);
+        assert_eq!(index.workspace_for_executable("/opt/vivaldi/vivaldi", "Vivaldi"), None);
+    }
+
+    #[test]
+    fn title_hint_refuses_when_sibling_lacks_desktop() {
+        // Regression: Gemini Vivaldi with desktop=None was assigned WhatsApp's WS.
+        let mut index = WorkspaceIndex::default();
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: Some(1),
+            title: "(3) WhatsApp - Vivaldi".into(),
+            app_id: Some("vivaldi-stable".into()),
+        });
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: None,
+            title: "Cursor Grok 4.5: Uso Pro - Google Gemini - Vivaldi".into(),
+            app_id: Some("vivaldi-stable".into()),
+        });
+        assert_eq!(index.workspace_for_title_hint("Vivaldi"), None);
+        assert_eq!(index.workspace_for_executable("/opt/vivaldi/vivaldi", "Vivaldi"), None);
+        let gemini = index
+            .windows
+            .iter()
+            .find(|w| w.title.contains("Gemini"))
+            .expect("gemini");
+        assert_eq!(gemini.desktop, None);
+    }
+
+    #[test]
+    fn workspace_for_title_hint_agrees_when_same_desktop() {
+        let mut index = WorkspaceIndex::default();
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: Some(2),
+            title: "Tab A - Vivaldi".into(),
+            app_id: None,
+        });
+        index.windows.push(WindowRecord {
+            pid: 0,
+            desktop: Some(2),
+            title: "Tab B - Vivaldi".into(),
+            app_id: None,
+        });
+        assert_eq!(index.workspace_for_title_hint("Vivaldi"), Some(2));
     }
 
     #[test]

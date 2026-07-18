@@ -16,8 +16,8 @@ use crate::capture::assistant::{
 use crate::capture::classifier::{classify, flatpak_snap_path_hint, user_session_active, ScoreInput};
 use crate::capture::desktop_index::{humanize_basename, DesktopIndex};
 use crate::platform::{
-    denylisted_basename, has_resolved_executable, uses_window_first_discovery, WindowRecord,
-    WorkspaceIndex,
+    denylisted_basename, has_resolved_executable, resolve_process_executable,
+    strip_deleted_exe_suffix, uses_window_first_discovery, WindowRecord, WorkspaceIndex,
 };
 
 const MAX_CANDIDATES: usize = 200;
@@ -336,10 +336,15 @@ fn build_candidate(
         (humanize_basename(&label), None)
     };
 
-    let desktop_workspace = window
-        .and_then(|w| w.desktop)
-        .or_else(|| workspace.workspace_for_pid(pid_u32))
-        .or_else(|| workspace.workspace_for_executable(&executable, &display_name));
+    // Window-first: use only this surface's desktop. PID/title fallbacks can
+    // steal a sibling window's workspace (Chromium/Vivaldi multi-window).
+    let desktop_workspace = if let Some(w) = window {
+        w.desktop
+    } else {
+        workspace
+            .workspace_for_pid(pid_u32)
+            .or_else(|| workspace.workspace_for_executable(&executable, &display_name))
+    };
 
     let window_title = window.map(|w| w.title.clone());
 
@@ -417,21 +422,19 @@ fn is_wm_noise_title(title: &str) -> bool {
 }
 
 fn executable_of(proc: &Process) -> String {
-    proc.exe()
-        .map(|p| p.to_string_lossy().into_owned())
-        .filter(|s| !s.is_empty())
-        .or_else(|| {
-            proc.cmd()
-                .first()
-                .map(|a| a.to_string_lossy().into_owned())
-        })
-        .unwrap_or_else(|| proc.name().to_string_lossy().into_owned())
+    resolve_process_executable(proc)
 }
 
 fn basename_of(proc: &Process, executable: &str) -> String {
-    proc.exe()
-        .and_then(|p| p.file_name().and_then(OsStr::to_str))
-        .map(|s| s.to_lowercase())
+    let from_exe = proc.exe().and_then(|p| {
+        let owned = p.to_string_lossy().into_owned();
+        let cleaned = strip_deleted_exe_suffix(&owned);
+        Path::new(cleaned)
+            .file_name()
+            .and_then(OsStr::to_str)
+            .map(|s| s.to_lowercase())
+    });
+    from_exe
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| {
             Path::new(executable)

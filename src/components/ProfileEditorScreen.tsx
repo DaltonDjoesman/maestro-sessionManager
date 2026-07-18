@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { peekCachedRunningApps, rememberRunningApps } from "../captureCache";
 import { pt } from "../i18n/pt";
 import {
   emptyBrowserSettings,
@@ -12,7 +13,7 @@ import { ApplicationBrowserFields } from "./ApplicationBrowserFields";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "./RunningAppsCaptureList";
 import { RefreshIconButton } from "./RefreshIconButton";
 import { normalizeProfile, normalizeProfileForRun } from "../profileNormalize";
-import type { ActivateSessionResult } from "../types/activation";
+import type { ActivateSessionResult, ActivationCompletePayload } from "../types/activation";
 import type { RunningAppCandidate } from "../types/capture";
 import { candidateKey, sortByDisplayName } from "../types/capture";
 import type {
@@ -34,7 +35,7 @@ interface ProfileEditorScreenProps {
   filePath: string;
   profilesRoot: string;
   onBack: () => void;
-  onActivated: (label: string) => void;
+  onActivationComplete: (payload: ActivationCompletePayload) => void;
   onDeleted?: (label: string) => void;
 }
 
@@ -60,7 +61,7 @@ export function ProfileEditorScreen({
   filePath,
   profilesRoot,
   onBack,
-  onActivated,
+  onActivationComplete,
   onDeleted,
 }: ProfileEditorScreenProps) {
   const [profile, setProfile] = useState<SessionProfile | null>(null);
@@ -140,11 +141,16 @@ export function ProfileEditorScreen({
   }, [filePath]);
 
   const refreshRunningApps = useCallback(async () => {
+    const cached = peekCachedRunningApps();
+    if (cached) {
+      setRunningApps(cached);
+    }
     setRunningBusy(true);
     setRunningErr(null);
     try {
       const list = await invoke<RunningAppCandidate[]>("list_assistant_running_apps");
       setRunningApps(list);
+      rememberRunningApps(list);
       setSelectedPids({});
     } catch (e) {
       setRunningErr(String(e));
@@ -214,13 +220,15 @@ export function ProfileEditorScreen({
     setBusy(true);
     setSaveError(null);
     try {
-      await invoke<ActivateSessionResult>("activate_session_profile", {
+      const result = await invoke<ActivateSessionResult>("activate_session_profile", {
         path: filePath,
         profile: toActivate,
       });
-      onActivated(sessionLabel);
+      onActivationComplete({ label: sessionLabel, result, error: null });
     } catch (e) {
-      setSaveError(String(e));
+      const message = String(e);
+      setSaveError(message);
+      onActivationComplete({ label: sessionLabel, result: null, error: message });
     } finally {
       setBusy(false);
     }

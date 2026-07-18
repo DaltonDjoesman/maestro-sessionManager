@@ -34,7 +34,7 @@ Each valid profile card SHALL expose **Ativar** as the primary action styled as 
 #### Scenario: Activate from card
 
 - **WHEN** the user clicks **Ativar** on a valid profile card
-- **THEN** the system SHALL activate using the on-disk profile; a dedicated results overlay is not required
+- **THEN** the system SHALL activate using the on-disk profile and SHALL open the activation results overlay required by `activation-results-ui`
 
 ### Requirement: Session hub SHALL show human-readable summaries
 

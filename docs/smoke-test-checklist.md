@@ -2,7 +2,7 @@
 
 Use this after `npm run tauri dev` or a release build on **Pop!_OS** / Ubuntu-class Linux with [Tauri prerequisites](https://tauri.app/start/prerequisites/) installed.
 
-Scope note: activation runs without an in-app results overlay; dry-run and Advanced editor tab are out of scope for this release.
+Scope note: activation shows an in-app results overlay after hub/editor activate; dry-run and Advanced editor tab are out of scope for this release.
 
 ## 1. App starts
 
@@ -30,7 +30,8 @@ Compare against `design/maestro-desktop-prototype.html` (inner app window only, 
 
 - [ ] Hub lists profiles as **grid cards** (prototype `profile-card` layout).
 - [ ] Toolbar: search, **Importar** (file picker + name prompt), **Nova sessão**.
-- [ ] **Ativar** on a valid card runs activation (no results overlay required).
+- [ ] **Ativar** on a valid card runs activation and opens the results overlay (steps + dismiss; **Abrir log** when a log path exists).
+- [ ] Overlay dismiss (Fechar / Esc) returns to a usable hub; failed activate still shows overlay/error feedback.
 - [ ] Clicking card body opens the profile editor.
 - [ ] Overflow menu (**···**): duplicate, export, delete.
 - [ ] Search filters by name; pins appear in **Fixadas**; last session appears under **Continuar** when valid.
@@ -40,8 +41,8 @@ Compare against `design/maestro-desktop-prototype.html` (inner app window only, 
 - [ ] Copy [`docs/examples/smoke-session.profile.json`](docs/examples/smoke-session.profile.json) into your profiles directory.
 - [ ] Editor has sticky header (**Guardar**, **Ativar**) and tabs **Conteúdo** / **Captura**.
 - [ ] **Guardar** works without validation error.
-- [ ] **Ativar sessão** invokes activation (apps/browser launch as configured).
-- [ ] Invalid profile shows an error and does not claim success.
+- [ ] **Ativar sessão** invokes activation (apps/browser launch as configured) and opens the same results overlay as the hub.
+- [ ] Invalid profile / bad executable shows failed steps (or invoke error) in the overlay and does not claim silent success.
 
 ## 5. Rust tests (CI-friendly)
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { peekCachedRunningApps, rememberRunningApps } from "../captureCache";
 import { pt } from "../i18n/pt";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "../components/RunningAppsCaptureList";
 import { RefreshIconButton } from "../components/RefreshIconButton";
@@ -12,8 +13,11 @@ interface CaptureAssistantPageProps {
 }
 
 export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
-  const [runningApps, setRunningApps] = useState<RunningAppCandidate[]>([]);
-  const [busy, setBusy] = useState(false);
+  const initialCached = peekCachedRunningApps();
+  const [runningApps, setRunningApps] = useState<RunningAppCandidate[]>(
+    () => initialCached ?? [],
+  );
+  const [busy, setBusy] = useState(() => initialCached == null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -24,8 +28,11 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
     try {
       const list = await invoke<RunningAppCandidate[]>("list_assistant_running_apps");
       setRunningApps(list);
+      rememberRunningApps(list);
     } catch (e) {
-      setRunningApps([]);
+      if (peekCachedRunningApps() == null) {
+        setRunningApps([]);
+      }
       setError(String(e));
     } finally {
       setBusy(false);

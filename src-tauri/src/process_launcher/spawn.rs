@@ -25,7 +25,9 @@ pub fn resolved_spawn_argv(spec: &LaunchSpec) -> (String, Vec<String>) {
     if let Some((program, argv)) = try_flatpak_host_launch(spec) {
         return (program, argv);
     }
-    (spec.executable.clone(), spec.args.clone())
+    // Replaced installs leave `/proc/.../exe` as `path (deleted)`; recover via PATH basename.
+    let program = crate::platform::resolve_launch_executable(&spec.executable);
+    (program, spec.args.clone())
 }
 
 /// Flatpak apps expose `/app/<name>` inside the sandbox; that path does not exist on the host.

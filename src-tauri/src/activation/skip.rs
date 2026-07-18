@@ -10,7 +10,7 @@ use crate::profiles::ApplicationLaunchEntry;
 
 /// Lowercased basename used for matching (e.g. `/usr/bin/Cursor` → `cursor`).
 pub fn executable_basename(executable: &str) -> String {
-    let t = executable.trim();
+    let t = crate::platform::strip_deleted_exe_suffix(executable.trim());
     Path::new(t)
         .file_name()
         .and_then(|s| s.to_str())
@@ -25,7 +25,10 @@ pub fn collect_running_executable_basenames() -> HashSet<String> {
     let mut set = HashSet::new();
     for proc in sys.processes().values() {
         let from_exe = proc.exe().and_then(|p| {
-            p.file_name()
+            let owned = p.to_string_lossy().into_owned();
+            let cleaned = crate::platform::strip_deleted_exe_suffix(&owned);
+            Path::new(cleaned)
+                .file_name()
                 .map(|n| n.to_string_lossy().to_lowercase())
         });
         let key = from_exe.unwrap_or_else(|| proc.name().to_string_lossy().to_lowercase());

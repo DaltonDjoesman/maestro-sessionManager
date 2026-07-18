@@ -7,7 +7,7 @@ import {
   saveLastSessionPath,
   savePinnedPaths,
 } from "../sessionCatalogUi";
-import type { ActivateSessionResult } from "../types/activation";
+import type { ActivateSessionResult, ActivationCompletePayload } from "../types/activation";
 import { normalizeProfileForRun } from "../profileNormalize";
 import type {
   DuplicateProfileResult,
@@ -18,10 +18,14 @@ import type {
 interface SessionHubPageProps {
   profilesRoot: string;
   onEdit: (filePath: string) => void;
-  onActivated: (label: string) => void;
+  onActivationComplete: (payload: ActivationCompletePayload) => void;
 }
 
-export function SessionHubPage({ profilesRoot, onEdit, onActivated }: SessionHubPageProps) {
+export function SessionHubPage({
+  profilesRoot,
+  onEdit,
+  onActivationComplete,
+}: SessionHubPageProps) {
   const [rows, setRows] = useState<ProfileCatalogEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [activatingPath, setActivatingPath] = useState<string | null>(null);
@@ -142,14 +146,16 @@ export function SessionHubPage({ profilesRoot, onEdit, onActivated }: SessionHub
     setError(null);
     try {
       const profile = await invoke<SessionProfile>("load_session_profile", { path: entry.filePath });
-      await invoke<ActivateSessionResult>("activate_session_profile", {
+      const result = await invoke<ActivateSessionResult>("activate_session_profile", {
         path: entry.filePath,
         profile: normalizeProfileForRun(profile),
       });
       if (profilesRoot.trim()) saveLastSessionPath(profilesRoot, entry.filePath);
-      onActivated(label);
+      onActivationComplete({ label, result, error: null });
     } catch (e) {
-      setError(String(e));
+      const message = String(e);
+      setError(message);
+      onActivationComplete({ label, result: null, error: message });
     } finally {
       setActivatingPath(null);
     }

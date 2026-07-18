@@ -68,6 +68,6 @@ Maestro’s Rust core lives under `src-tauri/`. When implementing or reviewing b
 | `openspec/changes/archive/` | Completed change proposals |
 | `openspec/specs/backend-dev-workflow/` | OpenSpec capability: backend dev workflow (agents, TDD, commits) |
 
-**Release scope:** capture is always available; activation has no in-app results overlay; dry-run and Advanced editor tab are deferred.
+**Release scope:** capture is always available; activation shows an in-app results overlay (step timeline + optional open log); dry-run and Advanced editor tab are deferred.
 
 OpenSpec workflow commands live under `.cursor/commands/` (`opsx-apply`, etc.).

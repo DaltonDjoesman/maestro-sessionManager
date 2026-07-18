@@ -21,7 +21,12 @@ use wayland_protocols::ext::workspace::v1::client::{
 
 use super::workspace::WindowRecord;
 
-const SNAPSHOT_TIMEOUT: Duration = Duration::from_millis(750);
+const SNAPSHOT_TIMEOUT: Duration = Duration::from_millis(500);
+/// Max wait for Cosmic `ext_workspace_enter` after foreign-toplevel listing.
+/// Kept short: stragglers that never enter (Cosmic quirk) must not block Capture.
+const WORKSPACE_ENRICH_TIMEOUT: Duration = Duration::from_millis(700);
+/// After Cosmic signals done, wait this long for late enters before giving up.
+const WORKSPACE_ENTER_GRACE: Duration = Duration::from_millis(80);
 
 /// Snapshot mapped top-level windows via `ext-foreign-toplevel-list-v1`.
 /// Returns an empty vec on any failure (no Wayland display, bind denied, timeout).
@@ -90,7 +95,8 @@ fn snapshot_foreign_toplevels() -> Result<Vec<WindowRecord>, String> {
         }
     }
 
-    if let Err(err) = enrich_cosmic_workspaces(&mut event_queue, &mut state, deadline) {
+    let enrich_deadline = Instant::now() + WORKSPACE_ENRICH_TIMEOUT;
+    if let Err(err) = enrich_cosmic_workspaces(&mut event_queue, &mut state, enrich_deadline) {
         eprintln!("[maestro] cosmic workspace soft-fail: {err}");
     }
 
@@ -118,16 +124,16 @@ fn enrich_cosmic_workspaces(
         return Err("ext_workspace_manager_v1 not advertised".into());
     }
 
-    // Collect workspace announcements first.
+    // Collect workspace announcements until Done (or deadline). Breaking as soon
+    // as the first handle appears can omit later workspaces (e.g. workspace 4),
+    // so ExtWorkspaceEnter IDs fail to resolve and those windows stay desktop=None.
     while Instant::now() < deadline && !state.workspace_done {
         event_queue
             .roundtrip(state)
             .map_err(|e| format!("workspace roundtrip: {e}"))?;
-        if !state.workspace_order.is_empty() {
-            // One more pass for late workspace events / done.
-            let _ = event_queue.roundtrip(state);
-            break;
-        }
+    }
+    if !state.workspace_order.is_empty() {
+        let _ = event_queue.roundtrip(state);
     }
 
     state.workspace_index = workspace_handle_index_map(&state.workspace_order);
@@ -148,15 +154,30 @@ fn enrich_cosmic_workspaces(
         state.cosmic_workspaces.entry(foreign_id).or_default();
     }
 
+    // Wait for workspace enters, but stop early once Cosmic is done and no new
+    // enters arrive for WORKSPACE_ENTER_GRACE. Waiting for 100% assignment made
+    // Capture hang for the full enrich timeout whenever one window never enters.
+    let expected = foreign_proxies.len().max(1);
+    let mut last_assigned = 0usize;
+    let mut last_progress = Instant::now();
     while Instant::now() < deadline {
         event_queue
             .roundtrip(state)
             .map_err(|e| format!("cosmic toplevel roundtrip: {e}"))?;
-        let any_ws = state
+        let assigned = state
             .cosmic_workspaces
             .values()
-            .any(|ids| !ids.is_empty());
-        if any_ws || state.cosmic_done {
+            .filter(|ids| !ids.is_empty())
+            .count();
+        if assigned > last_assigned {
+            last_assigned = assigned;
+            last_progress = Instant::now();
+        }
+        if assigned >= expected {
+            let _ = event_queue.roundtrip(state);
+            break;
+        }
+        if state.cosmic_done && last_progress.elapsed() >= WORKSPACE_ENTER_GRACE {
             let _ = event_queue.roundtrip(state);
             break;
         }
@@ -165,6 +186,70 @@ fn enrich_cosmic_workspaces(
     for (foreign_id, ws_ids) in &state.cosmic_workspaces {
         if let Some(info) = state.handles.get_mut(foreign_id) {
             info.desktop = resolve_workspace_index(&state.workspace_index, ws_ids);
+        }
+    }
+
+    if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
+        let remaining_ms = deadline
+            .saturating_duration_since(Instant::now())
+            .as_millis();
+        eprintln!(
+            "[maestro:ws] workspace_done={} cosmic_done={} announced={} map_len={} remaining_ms={}",
+            state.workspace_done,
+            state.cosmic_done,
+            state.workspace_order.len(),
+            state.workspace_index.len(),
+            remaining_ms
+        );
+        eprintln!(
+            "[maestro:ws] workspace_order={:?} index={:?}",
+            state.workspace_order, state.workspace_index
+        );
+        for id in &state.workspace_order {
+            let meta = state.workspace_meta.get(id);
+            eprintln!(
+                "[maestro:ws] ws_handle={} idx={:?} name={:?} coords={:?} active={}",
+                id,
+                state.workspace_index.get(id).copied(),
+                meta.and_then(|m| m.name.clone()),
+                meta.map(|m| m.coordinates.clone()).unwrap_or_default(),
+                meta.map(|m| m.active).unwrap_or(false)
+            );
+        }
+        let mut rows: Vec<_> = state.handles.iter().collect();
+        rows.sort_by_key(|(id, _)| *id);
+        for (foreign_id, info) in rows {
+            let ws_ids = state
+                .cosmic_workspaces
+                .get(foreign_id)
+                .cloned()
+                .unwrap_or_default();
+            let known: Vec<_> = ws_ids
+                .iter()
+                .map(|id| {
+                    format!(
+                        "{}→{:?}",
+                        id,
+                        state.workspace_index.get(id).copied()
+                    )
+                })
+                .collect();
+            eprintln!(
+                "[maestro:ws] foreign={} desktop={:?} app_id={:?} title={:?} enters={:?} state={:?} resolve={}",
+                foreign_id,
+                info.desktop,
+                info.app_id,
+                info.title,
+                known,
+                state.cosmic_states.get(foreign_id).cloned().unwrap_or_default(),
+                if ws_ids.is_empty() {
+                    "NO_ENTER"
+                } else if info.desktop.is_some() {
+                    "OK"
+                } else {
+                    "UNRESOLVED_ID"
+                }
+            );
         }
     }
 
@@ -203,8 +288,19 @@ struct SnapshotState {
     cosmic_workspaces: HashMap<u32, Vec<u32>>,
     workspace_order: Vec<u32>,
     workspace_index: HashMap<u32, u32>,
+    /// ext workspace protocol_id → human name / coordinates / active bit (debug + future ordering).
+    workspace_meta: HashMap<u32, WorkspaceMeta>,
     workspace_done: bool,
     cosmic_done: bool,
+    /// foreign protocol_id → last cosmic toplevel state words (debug).
+    cosmic_states: HashMap<u32, Vec<String>>,
+}
+
+#[derive(Default, Clone, Debug)]
+struct WorkspaceMeta {
+    name: Option<String>,
+    coordinates: Vec<u32>,
+    active: bool,
 }
 
 #[derive(Default, Clone)]
@@ -360,6 +456,12 @@ impl Dispatch<zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1, u32> for Snap
         match event {
             zcosmic_toplevel_handle_v1::Event::ExtWorkspaceEnter { workspace } => {
                 let ws_id = workspace.id().protocol_id();
+                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
+                    eprintln!(
+                        "[maestro:ws] ExtWorkspaceEnter foreign={} ws_id={}",
+                        foreign_id, ws_id
+                    );
+                }
                 state
                     .cosmic_workspaces
                     .entry(*foreign_id)
@@ -385,6 +487,29 @@ impl Dispatch<zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1, u32> for Snap
                 let ws_id = workspace.id().protocol_id();
                 if let Some(ids) = state.cosmic_workspaces.get_mut(foreign_id) {
                     ids.retain(|id| *id != ws_id);
+                }
+            }
+            zcosmic_toplevel_handle_v1::Event::State { state: words } => {
+                let labels: Vec<String> = words
+                    .chunks_exact(4)
+                    .filter_map(|c| u32::from_ne_bytes(c.try_into().ok()?).into())
+                    .map(|v| format!("state:{v}"))
+                    .collect();
+                // wayland array is typically sequence of u32 enums; keep raw bytes len too
+                let raw = format!("bytes={}", words.len());
+                let mut labels = labels;
+                if labels.is_empty() {
+                    labels.push(raw);
+                }
+                state.cosmic_states.insert(*foreign_id, labels);
+            }
+            zcosmic_toplevel_handle_v1::Event::OutputEnter { output } => {
+                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
+                    eprintln!(
+                        "[maestro:ws] OutputEnter foreign={} output={}",
+                        foreign_id,
+                        output.id().protocol_id()
+                    );
                 }
             }
             _ => {}
@@ -438,13 +563,45 @@ impl Dispatch<ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1, ()> for 
 
 impl Dispatch<ext_workspace_handle_v1::ExtWorkspaceHandleV1, ()> for SnapshotState {
     fn event(
-        _: &mut Self,
-        _: &ext_workspace_handle_v1::ExtWorkspaceHandleV1,
-        _: ext_workspace_handle_v1::Event,
+        state: &mut Self,
+        handle: &ext_workspace_handle_v1::ExtWorkspaceHandleV1,
+        event: ext_workspace_handle_v1::Event,
         _: &(),
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
+        let id = handle.id().protocol_id();
+        let meta = state.workspace_meta.entry(id).or_default();
+        match event {
+            ext_workspace_handle_v1::Event::Name { name } => {
+                meta.name = Some(name);
+            }
+            ext_workspace_handle_v1::Event::Coordinates { coordinates } => {
+                meta.coordinates = coordinates
+                    .chunks_exact(4)
+                    .filter_map(|c| u32::from_ne_bytes(c.try_into().ok()?).into())
+                    .collect();
+                // coordinates is an array of u32; wayland-rs may already decode — keep best effort
+                if meta.coordinates.is_empty() && !coordinates.is_empty() {
+                    meta.coordinates = coordinates.iter().map(|b| u32::from(*b)).collect();
+                }
+            }
+            ext_workspace_handle_v1::Event::State { state: bits } => {
+                // bitfield: active = 1 (see ext-workspace-v1.xml)
+                meta.active = match bits {
+                    wayland_client::WEnum::Value(v) => {
+                        v.contains(ext_workspace_handle_v1::State::Active)
+                    }
+                    _ => false,
+                };
+            }
+            ext_workspace_handle_v1::Event::Id { id: ws_id } => {
+                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
+                    eprintln!("[maestro:ws] workspace Id handle={id} id={ws_id}");
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -527,6 +684,9 @@ mod tests {
         assert_eq!(merged.windows().len(), 2);
     }
 
+    
+
+
     #[test]
     #[ignore = "requires live Cosmic Wayland session"]
     fn live_cosmic_workspaces_attach_distinct_indices() {
@@ -550,5 +710,26 @@ mod tests {
             !indices.is_empty(),
             "expected at least one Cosmic workspace index attached"
         );
+    }
+
+    #[test]
+    #[ignore = "requires live Cosmic Wayland session + MAESTRO_DEBUG_WORKSPACES=1"]
+    fn live_debug_workspace_attach_for_missing_desktop() {
+        std::env::set_var("MAESTRO_DEBUG_WORKSPACES", "1");
+        let records = load_wayland_foreign_toplevel();
+        let missing: Vec<_> = records.iter().filter(|r| r.desktop.is_none()).collect();
+        println!(
+            "[live-debug] total={} missing_desktop={}",
+            records.len(),
+            missing.len()
+        );
+        for r in &missing {
+            println!(
+                "  MISSING app_id={:?} title={}",
+                r.app_id, r.title
+            );
+        }
+        // Diagnostic only — always pass when the session responds.
+        assert!(!records.is_empty());
     }
 }

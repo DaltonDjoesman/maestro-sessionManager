@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { ActivationTerminalOverlay } from "./components/ActivationTerminalOverlay";
 import { ProfileEditorScreen } from "./components/ProfileEditorScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
+import { pt } from "./i18n/pt";
 import { AppShell, type AppRoute } from "./layout/AppShell";
 import { CaptureAssistantPage } from "./pages/CaptureAssistantPage";
 import { SessionHubPage } from "./pages/SessionHubPage";
@@ -11,17 +14,36 @@ import {
   saveLastSessionPath,
 } from "./sessionCatalogUi";
 import { applyDataThemeToDocument, resolveTheme } from "./themeDom";
+import type { ActivateSessionResult, ActivationCompletePayload } from "./types/activation";
 import type { ApplicationSettings } from "./types/settings";
 import "./styles/tokens.css";
 import "./styles/themes.css";
 import "./styles/components.css";
 import "./App.css";
 
+type ActivationOverlayState = {
+  open: boolean;
+  sessionLabel: string;
+  result: ActivateSessionResult | null;
+  error: string | null;
+  openLogError: string | null;
+};
+
+const closedOverlay: ActivationOverlayState = {
+  open: false,
+  sessionLabel: "",
+  result: null,
+  error: null,
+  openLogError: null,
+};
+
 function App() {
   const [route, setRoute] = useState<AppRoute>("hub");
   const [appSettings, setAppSettings] = useState<ApplicationSettings | null>(null);
   const [editorPath, setEditorPath] = useState<string | null>(null);
   const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
+  const [activationOverlay, setActivationOverlay] =
+    useState<ActivationOverlayState>(closedOverlay);
 
   const version = import.meta.env.VITE_APP_VERSION ?? "0.1.0";
   const profilesRoot = appSettings?.profiles_root ?? "";
@@ -72,12 +94,41 @@ function App() {
     setRoute("editor");
   };
 
-  const handleActivated = (label: string) => {
-    if (profilesRoot.trim()) {
-      saveActiveSessionLabel(profilesRoot, label);
-      setActiveSessionLabel(label);
+  const handleActivationComplete = useCallback(
+    ({ label, result, error }: ActivationCompletePayload) => {
+      setActivationOverlay({
+        open: true,
+        sessionLabel: label,
+        result,
+        error,
+        openLogError: null,
+      });
+      // Mark sidebar active only when invoke succeeded (no hard error).
+      if (!error && result && profilesRoot.trim()) {
+        saveActiveSessionLabel(profilesRoot, label);
+        setActiveSessionLabel(label);
+      }
+    },
+    [profilesRoot],
+  );
+
+  const closeActivationOverlay = useCallback(() => {
+    setActivationOverlay(closedOverlay);
+  }, []);
+
+  const handleOpenActivationLog = useCallback(async () => {
+    const path = activationOverlay.result?.activationLogPath?.trim();
+    if (!path) return;
+    try {
+      await openPath(path);
+      setActivationOverlay((prev) => ({ ...prev, openLogError: null }));
+    } catch (e) {
+      setActivationOverlay((prev) => ({
+        ...prev,
+        openLogError: pt.activation.openLogFailed(String(e)),
+      }));
     }
-  };
+  }, [activationOverlay.result?.activationLogPath]);
 
   const toggleTheme = async () => {
     if (!appSettings) return;
@@ -115,7 +166,7 @@ function App() {
           filePath={editorPath}
           profilesRoot={profilesRoot}
           onBack={closeEditor}
-          onActivated={handleActivated}
+          onActivationComplete={handleActivationComplete}
           onDeleted={(label) => {
             if (activeSessionLabel === label) clearActiveSession();
           }}
@@ -123,7 +174,11 @@ function App() {
       );
     }
     return (
-      <SessionHubPage profilesRoot={profilesRoot} onEdit={openEditor} onActivated={handleActivated} />
+      <SessionHubPage
+        profilesRoot={profilesRoot}
+        onEdit={openEditor}
+        onActivationComplete={handleActivationComplete}
+      />
     );
   };
 
@@ -145,6 +200,19 @@ function App() {
       >
         {renderMain()}
       </div>
+      <ActivationTerminalOverlay
+        open={activationOverlay.open}
+        sessionLabel={activationOverlay.sessionLabel}
+        result={activationOverlay.result}
+        error={activationOverlay.error}
+        openLogError={activationOverlay.openLogError}
+        onClose={closeActivationOverlay}
+        onOpenLog={
+          activationOverlay.result?.activationLogPath?.trim()
+            ? () => void handleOpenActivationLog()
+            : undefined
+        }
+      />
     </AppShell>
   );
 }

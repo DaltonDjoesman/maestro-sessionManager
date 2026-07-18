@@ -3,6 +3,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DesktopEntry {
@@ -14,14 +16,35 @@ pub struct DesktopEntry {
     pub app_id: Option<String>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DesktopIndex {
     by_key: HashMap<String, DesktopEntry>,
     by_wm_class: HashMap<String, DesktopEntry>,
 }
 
+const DESKTOP_INDEX_TTL: Duration = Duration::from_secs(45);
+
+static DESKTOP_INDEX_CACHE: Mutex<Option<(Instant, DesktopIndex)>> = Mutex::new(None);
+
 impl DesktopIndex {
+    /// Load freedesktop entries, reusing a short-lived process cache.
+    /// Capture navigations hit this often; `.desktop` files rarely change mid-session.
     pub fn load() -> Self {
+        if let Ok(guard) = DESKTOP_INDEX_CACHE.lock() {
+            if let Some((at, cached)) = guard.as_ref() {
+                if at.elapsed() < DESKTOP_INDEX_TTL {
+                    return cached.clone();
+                }
+            }
+        }
+        let fresh = Self::load_uncached();
+        if let Ok(mut guard) = DESKTOP_INDEX_CACHE.lock() {
+            *guard = Some((Instant::now(), fresh.clone()));
+        }
+        fresh
+    }
+
+    pub fn load_uncached() -> Self {
         let mut index = Self::default();
         for dir in desktop_application_dirs() {
             if dir.is_dir() {
@@ -94,13 +117,22 @@ impl DesktopIndex {
         }
 
         let exe_lower = executable.to_lowercase();
+        // Prefer the longest matching key so short false positives (e.g. "r", "sh")
+        // cannot steal a more specific Exec path match.
+        let mut best: Option<(&DesktopEntry, usize)> = None;
         for (key, entry) in &self.by_key {
             if entry.app_id.is_some() {
                 continue;
             }
-            if exe_lower.ends_with(key) || exe_lower.contains(&format!("/{key}")) {
-                return Some(entry);
+            if path_matches_exec_key(&exe_lower, key) {
+                let score = key.len();
+                if best.as_ref().map(|(_, s)| score > *s).unwrap_or(true) {
+                    best = Some((entry, score));
+                }
             }
+        }
+        if let Some((entry, _)) = best {
+            return Some(entry);
         }
 
         if basename_lower.ends_with("-bin") {
@@ -315,6 +347,11 @@ fn push_exec_key(keys: &mut Vec<String>, token: &str) {
         .and_then(|s| s.to_str())
         .map(|s| s.to_lowercase())
         .unwrap_or_else(|| token.to_lowercase());
+    // `emacsclient.desktop` uses `Exec=sh -c "…"` — registering `sh` made every
+    // process under `…/share/…` match via substring `/sh` inside `/share`.
+    if is_wrapper_exec_basename(&base) {
+        return;
+    }
     if !base.is_empty() {
         keys.push(base);
     }
@@ -330,6 +367,30 @@ fn push_exec_key(keys: &mut Vec<String>, token: &str) {
             }
         }
     }
+}
+
+fn is_wrapper_exec_basename(base: &str) -> bool {
+    matches!(
+        base,
+        "sh" | "bash" | "dash" | "zsh" | "fish" | "env" | "sudo" | "doas" | "busybox"
+    )
+}
+
+/// Match an Exec key against a process path using full path-segment boundaries.
+///
+/// Naive `contains("/{key}")` is wrong: key `sh` matches `/share` in Cursor's
+/// install path (`…/share/cursor/cursor`). Likewise `ends_with("r")` matches
+/// any path ending in the letter r.
+fn path_matches_exec_key(exe_lower: &str, key: &str) -> bool {
+    if key.is_empty() {
+        return false;
+    }
+    if key.contains('/') {
+        return exe_lower == key || exe_lower.ends_with(key);
+    }
+    exe_lower == key
+        || exe_lower.ends_with(&format!("/{key}"))
+        || exe_lower.contains(&format!("/{key}/"))
 }
 
 pub fn humanize_basename(basename: &str) -> String {
@@ -504,5 +565,70 @@ Hidden=true
             app_id: None,
         });
         assert!(index.match_window_title("Project - Obsidian 1.12").is_some());
+    }
+
+    #[test]
+    fn emacsclient_sh_wrapper_does_not_steal_cursor_under_share() {
+        // Debian/Ubuntu emacsclient.desktop: Exec=sh -c "… emacsclient …" sh %F
+        let content = r#"
+[Desktop Entry]
+Type=Application
+Name=Emacs (Client)
+Exec=sh -c "if [ -n \"$*\" ]; then exec /usr/bin/emacsclient --alternate-editor= --reuse-frame \"$@\"; else exec emacsclient --alternate-editor= --create-frame; fi" sh %F
+Icon=emacs
+StartupWMClass=Emacs
+"#;
+        let emacs = parse_desktop_file(content).expect("emacsclient parsed");
+        assert!(
+            !emacs.exec_keys.iter().any(|k| k == "sh"),
+            "wrapper basename sh must not be an exec key: {:?}",
+            emacs.exec_keys
+        );
+        assert!(emacs.exec_keys.iter().any(|k| k == "emacsclient"));
+
+        let mut index = DesktopIndex::default();
+        index.register_entry(emacs);
+        index.register_entry(DesktopEntry {
+            name: "Cursor".into(),
+            icon: Some("cursor".into()),
+            exec_keys: vec!["cursor".into(), "/usr/share/cursor/cursor".into()],
+            startup_wm_class: Some("Cursor".into()),
+            app_id: None,
+        });
+
+        let cursor_path =
+            "/home/user/.local/share/cursor-editor/usr/share/cursor/cursor";
+        let matched = index
+            .match_process(cursor_path, "cursor", None)
+            .expect("cursor match");
+        assert_eq!(matched.name, "Cursor");
+
+        // Without a Cursor desktop entry, /share must still not imply Emacs (Client).
+        let mut emacs_only = DesktopIndex::default();
+        emacs_only.register_entry(parse_desktop_file(content).expect("emacsclient"));
+        assert!(
+            emacs_only
+                .match_process(cursor_path, "cursor", None)
+                .is_none(),
+            "path segment /share must not match exec key sh"
+        );
+
+        let emacs_bin = emacs_only
+            .match_process("/usr/bin/emacsclient", "emacsclient", None)
+            .expect("real emacsclient");
+        assert_eq!(emacs_bin.name, "Emacs (Client)");
+    }
+
+    #[test]
+    fn path_matches_exec_key_uses_segment_boundaries() {
+        let cursor = "/home/user/.local/share/cursor-editor/usr/share/cursor/cursor";
+        assert!(!path_matches_exec_key(cursor, "sh"));
+        assert!(!path_matches_exec_key(cursor, "r"));
+        assert!(path_matches_exec_key(cursor, "cursor"));
+        assert!(path_matches_exec_key(
+            cursor,
+            "/home/user/.local/share/cursor-editor/usr/share/cursor/cursor"
+        ));
+        assert!(path_matches_exec_key("/usr/bin/emacsclient", "emacsclient"));
     }
 }

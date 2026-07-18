@@ -15,6 +15,13 @@ export type ActivateSessionResult = {
   activationLogPath?: string | null;
 };
 
+/** Payload bubbled from hub/editor to the shared activation overlay. */
+export type ActivationCompletePayload = {
+  label: string;
+  result: ActivateSessionResult | null;
+  error: string | null;
+};
+
 export type ActivationPreviewStep = {
   stepType: string;
   label: string;

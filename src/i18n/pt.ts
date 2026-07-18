@@ -119,6 +119,31 @@ export const pt = {
       "Ativar usa o perfil tal como está no editor (incluindo alterações por guardar). Guarda se quiseres o mesmo JSON no disco.",
   },
 
+  activation: {
+    title: "Terminal Maestro",
+    dismiss: "Fechar",
+    openLog: "Abrir log",
+    escHint: "[Esc para fechar]",
+    outcomeSuccess: "Activação concluída",
+    outcomeCaution: "Activação com avisos",
+    outcomeFailure: "Activação falhou",
+    statusSuccess: "ok",
+    statusFailure: "falhou",
+    statusWarning: "aviso",
+    statusSkipped: "ignorado",
+    emptySteps: "Sem passos devolvidos.",
+    invokeError: (detail: string) => `Erro ao activar: ${detail}`,
+    openLogFailed: (detail: string) => `Não foi possível abrir o log: ${detail}`,
+    summaryCounts: (c: { ok: number; failed: number; warned: number; skipped: number }) => {
+      const parts: string[] = [];
+      if (c.ok) parts.push(`${c.ok} ok`);
+      if (c.failed) parts.push(`${c.failed} falhou`);
+      if (c.warned) parts.push(`${c.warned} aviso`);
+      if (c.skipped) parts.push(`${c.skipped} ignorado`);
+      return parts.length ? parts.join(", ") : "sem passos";
+    },
+  },
+
   settings: {
     title: "Definições",
     tagline: "Preferências globais do Maestro",

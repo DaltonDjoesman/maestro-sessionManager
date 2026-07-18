@@ -1,10 +1,4 @@
-# activation-results-ui Specification
-
-## Purpose
-
-Present structured activation results in a dismissible in-app overlay after hub or editor activation, including per-step status and optional open-log when a log path is available.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Client SHALL present an activation results overlay
 
@@ -52,6 +46,8 @@ When the activation result includes a non-empty `activationLogPath` (or equivale
 
 - **WHEN** the results overlay is shown and no activation log path is returned
 - **THEN** the UI SHALL NOT require a working open-log action
+
+## MODIFIED Requirements
 
 ### Requirement: Activation SHALL return structured step results
 

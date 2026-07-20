@@ -26,15 +26,15 @@ Clearing the sidebar “última activação” label only resets UI state — la
 
 ## Screenshots
 
-![Session hub](docs/screenshots/hub.png)
+| Session hub | Capture assistant |
+|-------------|-------------------|
+| ![Hub](docs/screenshots/hub.png) | ![Capture](docs/screenshots/capture.png) |
 
-More surfaces and a capture checklist: [`docs/screenshots/`](docs/screenshots/).
+| Activation results | Settings |
+|--------------------|----------|
+| ![Activation](docs/screenshots/activation-overlay.png) | ![Settings](docs/screenshots/settings.png) |
 
-| Surface | File |
-|---------|------|
-| Session hub | [`docs/screenshots/hub.png`](docs/screenshots/hub.png) *(interim design asset — replace with live capture)* |
-| Capture assistant | [`docs/screenshots/capture.png`](docs/screenshots/capture.png) *(when available)* |
-| Activation results | [`docs/screenshots/activation-overlay.png`](docs/screenshots/activation-overlay.png) *(when available)* |
+Notes and regenerate script: [`docs/screenshots/`](docs/screenshots/).
 
 ## Stack
 

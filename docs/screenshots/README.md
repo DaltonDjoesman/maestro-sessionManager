@@ -1,29 +1,31 @@
 # Screenshots
 
-Portfolio visuals for the README. Prefer real captures from a running build on Pop!_OS / Cosmic when possible.
+Live UI captures of Maestro (React shell at 1440×900, dark theme, pt-PT). Regenerated from the running Vite UI with a mocked Tauri IPC layer so catalog / capture / activation look filled without personal paths.
 
 ## Status
 
 | Asset | Status | Notes |
 |-------|--------|-------|
-| `hub.png` | Present (interim) | From design handoff; replace with a live app capture when convenient |
-| `capture.png` | Pending | Standalone Captura assistant |
-| `activation-overlay.png` | Pending | Activation / preview results overlay |
+| `hub.png` | Current | Sessões hub with profile cards |
+| `capture.png` | Current | Assistente de captura (workspaces) |
+| `activation-overlay.png` | Current | Terminal results after **Ativar** |
+| `settings.png` | Current | Definições (Geral / Sessões / Avançado) |
 
-Place PNG (or GIF) files in this folder using the names above, then the README links will resolve.
+## Regenerate
 
-> Capture and activation overlay shots wait on convenient live captures. Hub is covered by an interim design asset so the README image path resolves.
+With `npm run tauri dev` (or at least `npm run dev` on port 1420):
 
-## Capture checklist
+```bash
+# one-time if needed
+npm install --no-save puppeteer-core
+node scripts/capture-portfolio-screenshots.mjs
+```
 
-1. Run `npm run tauri dev` (or a release build) on a desktop that matches the target look.
-2. Use a clean demo catalog (a few named profiles; avoid personal paths in the shot).
-3. Prefer light or dark theme consistently across shots; 1440×900 or similar is fine.
-4. Capture:
-   - [ ] **Hub** — Sessões hub with at least one profile card visible → save as `hub.png`
-   - [ ] **Capture** — Captura list with candidates → `capture.png`
-   - [ ] **Activation overlay** — After **Ativar**, results timeline visible → `activation-overlay.png`
-5. Crop to the app window (no unrelated desktop clutter).
-6. Commit the PNGs and tick the rows in the Status table above.
+## Capture checklist (native window)
 
-Prototype reference (layout only): `design/maestro-desktop-prototype.html`.
+Prefer these when replacing with a real Tauri window shot:
+
+1. Run `npm run tauri dev` on Pop!_OS / Cosmic.
+2. Use a clean demo catalog (no personal absolute paths in the shot if possible).
+3. Capture hub, captura, activation overlay, and optionally Definições.
+4. Crop to the app window; keep theme consistent across shots.

@@ -17,7 +17,7 @@ Compare against `design/maestro-desktop-prototype.html` (inner app window only, 
 - [ ] **1440×900** — hub cards, sidebar, header match prototype layout.
 - [ ] **1366×768**, **1024×768** — no horizontal scroll; drawer sidebar below 900px width.
 - [ ] **390×844**, **360×800** — mobile drawer navigation usable.
-- [ ] Optional: refresh `docs/screenshots/hub.png` (and capture/overlay shots) from a live build per the screenshots checklist.
+- [ ] Optional: refresh `docs/screenshots/*.png` from a live build (`node scripts/capture-portfolio-screenshots.mjs` with Vite on :1420, or native window shots per [docs/screenshots/README.md](./screenshots/README.md)).
 
 ## 2. Settings
 

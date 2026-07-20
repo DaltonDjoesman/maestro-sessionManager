@@ -12,6 +12,11 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local AI tooling / leftover scaffold (keep on disk, not on GitHub)
+.agents/
+.metadata
+skills-lock.json
+
 # IntelliJ related
 *.iml
 *.ipr

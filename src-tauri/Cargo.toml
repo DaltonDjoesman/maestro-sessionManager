@@ -2,7 +2,7 @@
 name = "maestro"
 version = "0.1.0"
 description = "Maestro — Linux session environment manager"
-authors = ["you"]
+authors = ["DaltonDjoesman"]
 edition = "2021"
 
 [lib]

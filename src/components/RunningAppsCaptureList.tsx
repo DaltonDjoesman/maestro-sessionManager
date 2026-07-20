@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import { emptyBrowserSettings, inferBrowserFamily } from "../browserDetect";
 import type { ApplicationLaunchEntry } from "../types/profile";
 import {
@@ -13,8 +13,8 @@ import {
 import type { RunningAppCandidate, RunningAppSection } from "../types/capture";
 
 function sectionTitle(section: RunningAppSection): string {
-  if (section.type === "workspace") return pt.capture.workspace(section.workspace + 1);
-  if (section.type === "noWorkspace") return pt.capture.noWorkspace;
+  if (section.type === "workspace") return t.capture.workspace(section.workspace + 1);
+  if (section.type === "noWorkspace") return t.capture.noWorkspace;
   return "";
 }
 
@@ -90,7 +90,7 @@ export function RunningAppsCaptureList({
           <input
             type="search"
             className="search-input"
-            placeholder={pt.capture.searchPlaceholder}
+            placeholder={t.capture.searchPlaceholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             disabled={busy}
@@ -98,7 +98,7 @@ export function RunningAppsCaptureList({
         </div>
         <div className="capture-toolbar-actions">
           {filteredApps.length > 0 ? (
-            <span className="capture-selection-count">{pt.capture.selectedCount(selectedCount)}</span>
+            <span className="capture-selection-count">{t.capture.selectedCount(selectedCount)}</span>
           ) : null}
           {onBulkSelect && filteredApps.length > 0 ? (
             <button
@@ -107,7 +107,7 @@ export function RunningAppsCaptureList({
               disabled={busy}
               onClick={toggleSelectAllVisible}
             >
-              {allFilteredSelected ? pt.capture.deselectAll : pt.capture.selectAll}
+              {allFilteredSelected ? t.capture.deselectAll : t.capture.selectAll}
             </button>
           ) : null}
         </div>
@@ -120,7 +120,7 @@ export function RunningAppsCaptureList({
       ) : null}
 
       <div className="capture-list-scroll">
-        {sections.length === 0 && !busy ? <p className="view-subtitle capture-empty">{pt.capture.empty}</p> : null}
+        {sections.length === 0 && !busy ? <p className="view-subtitle capture-empty">{t.capture.empty}</p> : null}
         {sections.map((section) => (
           <section key={sectionTitle(section) || "flat"} className="capture-workspace-group">
             {section.type !== "flat" ? (

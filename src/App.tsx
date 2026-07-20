@@ -4,7 +4,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { ActivationTerminalOverlay } from "./components/ActivationTerminalOverlay";
 import { ProfileEditorScreen } from "./components/ProfileEditorScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
-import { pt } from "./i18n/pt";
+import { t } from "./i18n";
 import { AppShell, type AppRoute } from "./layout/AppShell";
 import { CaptureAssistantPage } from "./pages/CaptureAssistantPage";
 import { SessionHubPage } from "./pages/SessionHubPage";
@@ -150,7 +150,7 @@ function App() {
     } catch (e) {
       setActivationOverlay((prev) => ({
         ...prev,
-        openLogError: pt.activation.openLogFailed(String(e)),
+        openLogError: t.activation.openLogFailed(String(e)),
       }));
     }
   }, [activationOverlay.result?.activationLogPath]);

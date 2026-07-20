@@ -1,4 +1,4 @@
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 
 interface RefreshIconButtonProps {
   onClick: () => void;
@@ -13,8 +13,8 @@ export function RefreshIconButton({ onClick, disabled, busy }: RefreshIconButton
       className={`btn-icon btn-refresh-icon${busy ? " btn-refresh-icon--busy" : ""}`}
       disabled={disabled}
       onClick={onClick}
-      aria-label={pt.capture.refresh}
-      title={pt.capture.refresh}
+      aria-label={t.capture.refresh}
+      title={t.capture.refresh}
     >
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden>
         <path

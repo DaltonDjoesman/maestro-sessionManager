@@ -5,7 +5,7 @@ import {
   SMOKE_SESSION_EXAMPLE_NAME,
   SMOKE_SESSION_PROFILE_JSON,
 } from "../examples/smokeSessionProfile";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import {
   loadLastSessionPath,
   loadPinnedPaths,
@@ -235,11 +235,11 @@ export function SessionHubPage({
 
   const handleDuplicateNamed = async (path: string, currentName: string) => {
     setOpenMenuPath(null);
-    const name = window.prompt(pt.hub.duplicatePrompt, `${currentName} (cópia)`);
+    const name = window.prompt(t.hub.duplicatePrompt, `${currentName} (cópia)`);
     if (name == null) return;
     const trimmed = name.trim();
     if (!trimmed) {
-      setError(pt.hub.emptyName);
+      setError(t.hub.emptyName);
       return;
     }
     setBusy(true);
@@ -260,7 +260,7 @@ export function SessionHubPage({
 
   const handleDelete = async (path: string, label: string) => {
     setOpenMenuPath(null);
-    if (!window.confirm(pt.hub.deleteConfirm(label))) return;
+    if (!window.confirm(t.hub.deleteConfirm(label))) return;
     setBusy(true);
     setError(null);
     try {
@@ -311,7 +311,7 @@ export function SessionHubPage({
     if (!importDraft) return;
     const trimmed = importDraft.displayName.trim();
     if (!trimmed) {
-      setImportDraft({ ...importDraft, error: pt.hub.emptyName });
+      setImportDraft({ ...importDraft, error: t.hub.emptyName });
       return;
     }
     setBusy(true);
@@ -342,7 +342,7 @@ export function SessionHubPage({
       json = await file.text();
       JSON.parse(json);
     } catch {
-      setError(pt.import.invalidJson);
+      setError(t.import.invalidJson);
       return;
     }
 
@@ -390,7 +390,7 @@ export function SessionHubPage({
               type="button"
               className={`card-btn${pinned ? " card-btn-active" : ""}`}
               disabled={busy || !r.valid}
-              title={pinned ? pt.hub.unpin : pt.hub.pin}
+              title={pinned ? t.hub.unpin : t.hub.pin}
               aria-pressed={pinned}
               onClick={(ev) => {
                 ev.stopPropagation();
@@ -405,15 +405,15 @@ export function SessionHubPage({
             {r.valid ? (
               <>
                 {(r.applicationsCount ?? 0) > 0 ? (
-                  <span className="badge badge-gray">{pt.hub.appsCount(r.applicationsCount!)}</span>
+                  <span className="badge badge-gray">{t.hub.appsCount(r.applicationsCount!)}</span>
                 ) : (
-                  <span className="badge badge-gray">{pt.hub.emptyContent}</span>
+                  <span className="badge badge-gray">{t.hub.emptyContent}</span>
                 )}
-                {r.hasBrowser ? <span className="badge badge-accent">{pt.hub.hasBrowser}</span> : null}
+                {r.hasBrowser ? <span className="badge badge-accent">{t.hub.hasBrowser}</span> : null}
               </>
             ) : (
               <span className="badge badge-danger" title={r.error ?? ""}>
-                {pt.hub.invalid}
+                {t.hub.invalid}
               </span>
             )}
           </div>
@@ -427,14 +427,14 @@ export function SessionHubPage({
               disabled={busy || !r.valid || isActivating}
               onClick={() => void activateProfile(r)}
             >
-              {isActivating ? pt.hub.working : pt.hub.activate}
+              {isActivating ? t.hub.working : t.hub.activate}
             </button>
           </div>
           <div className="overflow-menu-wrapper" ref={menuOpen ? menuRef : undefined}>
             <button
               type="button"
               className="card-btn"
-              aria-label={pt.hub.more}
+              aria-label={t.hub.more}
               aria-expanded={menuOpen}
               disabled={busy}
               onClick={() => setOpenMenuPath(menuOpen ? null : r.filePath)}
@@ -450,7 +450,7 @@ export function SessionHubPage({
                   disabled={!r.valid}
                   onClick={() => void previewProfile(r)}
                 >
-                  {pt.hub.preview}
+                  {t.hub.preview}
                 </button>
                 <button
                   type="button"
@@ -459,7 +459,7 @@ export function SessionHubPage({
                   disabled={!r.valid}
                   onClick={() => void openExportModal(r.filePath, label)}
                 >
-                  {pt.hub.export}
+                  {t.hub.export}
                 </button>
                 <button
                   type="button"
@@ -468,7 +468,7 @@ export function SessionHubPage({
                   disabled={!r.valid}
                   onClick={() => void handleDuplicateNamed(r.filePath, label)}
                 >
-                  {pt.hub.duplicateNamed}
+                  {t.hub.duplicateNamed}
                 </button>
                 <button
                   type="button"
@@ -476,7 +476,7 @@ export function SessionHubPage({
                   role="menuitem"
                   onClick={() => void handleDelete(r.filePath, label)}
                 >
-                  {pt.hub.delete}
+                  {t.hub.delete}
                 </button>
               </div>
             ) : null}
@@ -499,8 +499,8 @@ export function SessionHubPage({
   return (
     <div className="page hub-page">
       <div className="view-title-group">
-        <h1 className="view-title">{pt.hub.title}</h1>
-        <p className="view-subtitle">{pt.hub.tagline}</p>
+        <h1 className="view-title">{t.hub.title}</h1>
+        <p className="view-subtitle">{t.hub.tagline}</p>
       </div>
 
       {error ? (
@@ -517,11 +517,11 @@ export function SessionHubPage({
           <input
             type="search"
             className="search-input"
-            placeholder={pt.hub.searchPlaceholder}
+            placeholder={t.hub.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             disabled={busy}
-            aria-label={pt.hub.search}
+            aria-label={t.hub.search}
           />
         </div>
         <div className="hub-toolbar-actions">
@@ -538,21 +538,21 @@ export function SessionHubPage({
             disabled={busy}
             onClick={() => importFileRef.current?.click()}
           >
-            {pt.hub.import}
+            {t.hub.import}
           </button>
           <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void handleCreate()}>
-            {pt.hub.newSession}
+            {t.hub.newSession}
           </button>
         </div>
       </div>
 
       {catalogEmpty ? (
         <section className="hub-empty-state" aria-live="polite">
-          <h2 className="hub-empty-title">{pt.hub.emptyTitle}</h2>
-          <p className="view-subtitle">{pt.hub.emptyBody}</p>
+          <h2 className="hub-empty-title">{t.hub.emptyTitle}</h2>
+          <p className="view-subtitle">{t.hub.emptyBody}</p>
           <div className="hub-empty-actions">
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void handleCreate()}>
-              {pt.hub.emptyCreate}
+              {t.hub.emptyCreate}
             </button>
             <button
               type="button"
@@ -560,22 +560,22 @@ export function SessionHubPage({
               disabled={busy}
               onClick={() => void handleCreateFromExample()}
             >
-              {pt.hub.emptyFromExample}
+              {t.hub.emptyFromExample}
             </button>
           </div>
         </section>
       ) : (
         <>
-          {lastSessionRow && !search.trim() ? renderSection(pt.hub.continue, [lastSessionRow], true) : null}
-          {pinnedRows.length > 0 ? renderSection(pt.hub.pinned, pinnedRows) : null}
+          {lastSessionRow && !search.trim() ? renderSection(t.hub.continue, [lastSessionRow], true) : null}
+          {pinnedRows.length > 0 ? renderSection(t.hub.pinned, pinnedRows) : null}
 
           <section className="hub-section">
             <h2 className="section-title">
-              {pt.hub.all} ({unpinnedRows.length + pinnedRows.length + (lastSessionRow && !search.trim() ? 1 : 0)})
+              {t.hub.all} ({unpinnedRows.length + pinnedRows.length + (lastSessionRow && !search.trim() ? 1 : 0)})
             </h2>
             <div className="profile-grid">
               {unpinnedRows.length === 0 && !busy ? (
-                <p className="view-subtitle hub-empty">{pt.hub.emptySearch}</p>
+                <p className="view-subtitle hub-empty">{t.hub.emptySearch}</p>
               ) : null}
               {unpinnedRows.map((r) => renderCard(r))}
             </div>
@@ -583,19 +583,19 @@ export function SessionHubPage({
         </>
       )}
 
-      {busy && !activatingPath ? <p className="view-subtitle">{pt.hub.working}</p> : null}
+      {busy && !activatingPath ? <p className="view-subtitle">{t.hub.working}</p> : null}
 
       <Modal
         open={importDraft != null}
-        title={pt.import.title}
+        title={t.import.title}
         onClose={() => setImportDraft(null)}
         footer={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setImportDraft(null)} disabled={busy}>
-              {pt.import.cancel}
+              {t.import.cancel}
             </button>
             <button type="button" className="btn btn-primary" onClick={() => void handleImportConfirm()} disabled={busy}>
-              {pt.import.confirm}
+              {t.import.confirm}
             </button>
           </>
         }
@@ -603,17 +603,17 @@ export function SessionHubPage({
         {importDraft ? (
           <>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.import.subtitle}
+              {t.import.subtitle}
             </p>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.import.fileSelected(importDraft.fileName)}
+              {t.import.fileSelected(importDraft.fileName)}
             </p>
             <label className="field">
-              <span>{pt.import.displayName}</span>
+              <span>{t.import.displayName}</span>
               <input
                 type="text"
                 value={importDraft.displayName}
-                placeholder={pt.import.displayNamePlaceholder}
+                placeholder={t.import.displayNamePlaceholder}
                 autoFocus
                 onChange={(e) =>
                   setImportDraft({ ...importDraft, displayName: e.target.value, error: null })
@@ -637,15 +637,15 @@ export function SessionHubPage({
 
       <Modal
         open={exportDraft != null}
-        title={pt.export.title}
+        title={t.export.title}
         onClose={() => setExportDraft(null)}
         footer={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setExportDraft(null)}>
-              {pt.export.cancel}
+              {t.export.cancel}
             </button>
             <button type="button" className="btn btn-primary" onClick={confirmExport}>
-              {pt.export.confirm}
+              {t.export.confirm}
             </button>
           </>
         }
@@ -653,16 +653,16 @@ export function SessionHubPage({
         {exportDraft ? (
           <>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.export.subtitle}
+              {t.export.subtitle}
             </p>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.export.schemaVersion(exportDraft.profile.schema_version)}
+              {t.export.schemaVersion(exportDraft.profile.schema_version)}
             </p>
             <p className="view-subtitle" style={{ margin: 0 }}>
               {exportDraft.displayName}
             </p>
             <label className="field">
-              <span>{pt.export.fileName}</span>
+              <span>{t.export.fileName}</span>
               <input
                 type="text"
                 value={exportDraft.fileName}

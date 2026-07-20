@@ -1,5 +1,5 @@
 import { useEffect, useId } from "react";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import type {
   ActivateSessionResult,
   ActivationPreviewStep,
@@ -52,13 +52,13 @@ function statusClass(status: ActivationStepStatus): string {
 function statusLabel(status: ActivationStepStatus): string {
   switch (status) {
     case "success":
-      return pt.activation.statusSuccess;
+      return t.activation.statusSuccess;
     case "failure":
-      return pt.activation.statusFailure;
+      return t.activation.statusFailure;
     case "warning":
-      return pt.activation.statusWarning;
+      return t.activation.statusWarning;
     case "skipped":
-      return pt.activation.statusSkipped;
+      return t.activation.statusSkipped;
     default:
       return status;
   }
@@ -67,11 +67,11 @@ function statusLabel(status: ActivationStepStatus): string {
 function outcomeTitle(outcome: ActivationOutcome): string {
   switch (outcome) {
     case "success":
-      return pt.activation.outcomeSuccess;
+      return t.activation.outcomeSuccess;
     case "caution":
-      return pt.activation.outcomeCaution;
+      return t.activation.outcomeCaution;
     case "failure":
-      return pt.activation.outcomeFailure;
+      return t.activation.outcomeFailure;
   }
 }
 
@@ -86,7 +86,7 @@ function summarizeSteps(steps: ActivationStepSummary[]): string {
     else if (s.status === "warning") warned += 1;
     else if (s.status === "skipped") skipped += 1;
   }
-  return pt.activation.summaryCounts({ ok, failed, warned, skipped });
+  return t.activation.summaryCounts({ ok, failed, warned, skipped });
 }
 
 function formatArgv(argv: string[]): string {
@@ -112,7 +112,7 @@ export function ActivationTerminalOverlay({
   const logPath = result?.activationLogPath?.trim() || null;
   const outcome = isPreview ? "caution" : deriveActivationOutcome(result, error);
   const canOpenLog = Boolean(!isPreview && logPath && onOpenLog);
-  const titlePrefix = isPreview ? pt.activation.previewTitle : pt.activation.title;
+  const titlePrefix = isPreview ? t.activation.previewTitle : t.activation.title;
 
   useEffect(() => {
     if (!open) return;
@@ -146,19 +146,19 @@ export function ActivationTerminalOverlay({
             {titlePrefix} — {sessionLabel}
           </span>
         </div>
-        <div className="terminal-esc-hint">{pt.activation.escHint}</div>
+        <div className="terminal-esc-hint">{t.activation.escHint}</div>
       </div>
 
       <div className="terminal-body">
         {isPreview ? (
           <>
             <div className="terminal-outcome terminal-outcome--caution">
-              {pt.activation.previewOutcome}
+              {t.activation.previewOutcome}
               {preview.length > 0 ? ` · ${preview.length} passo${preview.length === 1 ? "" : "s"}` : null}
             </div>
             <div className="terminal-log-line">
               <span className="log-timestamp">[·]</span>
-              <span className="log-info">{pt.activation.previewBadge}</span>
+              <span className="log-info">{t.activation.previewBadge}</span>
             </div>
           </>
         ) : (
@@ -172,7 +172,7 @@ export function ActivationTerminalOverlay({
           <div className="terminal-log-line">
             <span className="log-timestamp">[!]</span>
             <span className="log-error">
-              {isPreview ? pt.activation.previewError(error) : pt.activation.invokeError(error)}
+              {isPreview ? t.activation.previewError(error) : t.activation.invokeError(error)}
             </span>
           </div>
         ) : null}
@@ -182,13 +182,13 @@ export function ActivationTerminalOverlay({
             {preview.length === 0 && !error ? (
               <div className="terminal-log-line">
                 <span className="log-timestamp">[·]</span>
-                <span className="log-info">{pt.activation.emptySteps}</span>
+                <span className="log-info">{t.activation.emptySteps}</span>
               </div>
             ) : null}
             {preview.map((step, index) => (
               <div key={`${step.label}-${index}`} className="terminal-log-line">
                 <span className="log-timestamp">
-                  [{step.wouldSkip ? pt.activation.statusWouldSkip : step.stepType}]
+                  [{step.wouldSkip ? t.activation.statusWouldSkip : step.stepType}]
                 </span>
                 <span className={step.wouldSkip ? "log-info" : "log-success"}>
                   {step.label}
@@ -204,7 +204,7 @@ export function ActivationTerminalOverlay({
             {steps.length === 0 && !error ? (
               <div className="terminal-log-line">
                 <span className="log-timestamp">[·]</span>
-                <span className="log-info">{pt.activation.emptySteps}</span>
+                <span className="log-info">{t.activation.emptySteps}</span>
               </div>
             ) : null}
             {steps.map((step, index) => (
@@ -230,7 +230,7 @@ export function ActivationTerminalOverlay({
 
       <div className="terminal-footer">
         <button type="button" className="btn" onClick={onClose} data-od-id="close-terminal-btn">
-          {pt.activation.dismiss}
+          {t.activation.dismiss}
         </button>
         {canOpenLog ? (
           <button
@@ -239,7 +239,7 @@ export function ActivationTerminalOverlay({
             onClick={onOpenLog}
             data-od-id="open-log-btn"
           >
-            {pt.activation.openLog}
+            {t.activation.openLog}
           </button>
         ) : null}
       </div>

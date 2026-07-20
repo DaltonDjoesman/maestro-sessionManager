@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { mergeUrlsFromClipboard, parseClipboardUrls, readClipboardText } from "../clipboard";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import type { ApplicationBrowserSettings } from "../types/profile";
 import type { BrowserFamily } from "../types/settings";
 
@@ -21,12 +21,12 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
     setPasteError(null);
     const text = await readClipboardText();
     if (text == null) {
-      setPasteError(pt.editor.pasteClipboardFailed);
+      setPasteError(t.editor.pasteClipboardFailed);
       return;
     }
     const lines = parseClipboardUrls(text);
     if (lines.length === 0) {
-      setPasteError(pt.editor.pasteClipboardEmpty);
+      setPasteError(t.editor.pasteClipboardEmpty);
       return;
     }
     onPatch({ urls: mergeUrlsFromClipboard(browser.urls ?? [], lines) });
@@ -34,22 +34,22 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
 
   return (
     <div className="browser-fields field-full">
-      <p className="hint browser-fields-hint">{pt.editor.browserAppHint}</p>
+      <p className="hint browser-fields-hint">{t.editor.browserAppHint}</p>
       <div className="app-card-grid browser-fields-grid">
         <label className="field">
-          <span>{pt.editor.browserFamily}</span>
+          <span>{t.editor.browserFamily}</span>
           <select
             className="form-select"
             value={browser.family}
             onChange={(e) => onPatch({ family: e.target.value as BrowserFamily })}
           >
-            <option value="chromium_like">{pt.editor.browserFamilyChromium}</option>
-            <option value="firefox">{pt.editor.browserFamilyFirefox}</option>
+            <option value="chromium_like">{t.editor.browserFamilyChromium}</option>
+            <option value="firefox">{t.editor.browserFamilyFirefox}</option>
           </select>
         </label>
         {browser.family === "chromium_like" ? (
           <label className="field">
-            <span>{pt.editor.userDataDir}</span>
+            <span>{t.editor.userDataDir}</span>
             <input
               type="text"
               className="browser-subfield-input"
@@ -59,12 +59,12 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
                   user_data_dir: e.target.value.trim() ? e.target.value : null,
                 })
               }
-              placeholder={pt.editor.userDataDirPlaceholder}
+              placeholder={t.editor.userDataDirPlaceholder}
             />
           </label>
         ) : (
           <label className="field">
-            <span>{pt.editor.firefoxProfile}</span>
+            <span>{t.editor.firefoxProfile}</span>
             <input
               type="text"
               className="browser-subfield-input"
@@ -79,30 +79,30 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
         )}
         <div className="field field-full browser-urls-field">
           <div className="browser-urls-label-row">
-            <span>{pt.editor.urlsToOpen}</span>
+            <span>{t.editor.urlsToOpen}</span>
             <div className="browser-urls-toolbar">
               <button type="button" className="btn btn-secondary btn-compact" onClick={addBrowserUrlRow}>
-                {pt.editor.addUrl}
+                {t.editor.addUrl}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-compact"
                 onClick={() => void pasteBrowserUrlsFromClipboard()}
               >
-                {pt.editor.pasteFromClipboard}
+                {t.editor.pasteFromClipboard}
               </button>
             </div>
           </div>
-          <p className="hint browser-urls-hint">{pt.editor.urlsHint}</p>
+          <p className="hint browser-urls-hint">{t.editor.urlsHint}</p>
           {pasteError ? (
             <p className="field-error" role="alert">
               {pasteError}
             </p>
           ) : null}
           {browser.urls.length === 0 ? (
-            <p className="hint browser-urls-empty">{pt.editor.urlsEmpty}</p>
+            <p className="hint browser-urls-empty">{t.editor.urlsEmpty}</p>
           ) : null}
-          <ul className="browser-url-list" aria-label={pt.editor.urlsToOpen}>
+          <ul className="browser-url-list" aria-label={t.editor.urlsToOpen}>
             {(browser.urls ?? []).map((url, i) => (
               <li key={i} className="browser-url-row">
                 <div className="browser-url-row-main">
@@ -126,10 +126,10 @@ export function ApplicationBrowserFields({ browser, onPatch }: ApplicationBrowse
                 <button
                   type="button"
                   className="btn btn-secondary btn-compact danger browser-url-remove"
-                  aria-label={`${pt.editor.remove} URL ${i + 1}`}
+                  aria-label={`${t.editor.remove} URL ${i + 1}`}
                   onClick={() => onPatch({ urls: (browser.urls ?? []).filter((_, j) => j !== i) })}
                 >
-                  {pt.editor.remove}
+                  {t.editor.remove}
                 </button>
               </li>
             ))}

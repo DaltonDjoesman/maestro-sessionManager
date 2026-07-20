@@ -12,16 +12,17 @@ Scope note: activation shows an in-app results overlay after hub/editor activate
 
 ## 1b. Visual QA (design handoff)
 
-Compare against `design/maestro-desktop-prototype.html` (inner app window only, pt-PT copy):
+Compare against `design/maestro-desktop-prototype.html` (inner app window only, pt-PT copy). Portfolio screenshot capture notes: [docs/screenshots/README.md](./screenshots/README.md).
 
 - [ ] **1440×900** — hub cards, sidebar, header match prototype layout.
 - [ ] **1366×768**, **1024×768** — no horizontal scroll; drawer sidebar below 900px width.
 - [ ] **390×844**, **360×800** — mobile drawer navigation usable.
+- [ ] Optional: refresh `docs/screenshots/hub.png` (and capture/overlay shots) from a live build per the screenshots checklist.
 
 ## 2. Settings
 
 - [ ] **Definições** opens from the sidebar.
-- [ ] Settings are grouped (Geral, Sessões, Browser, Avançado); **Sobre** appears at the bottom with version (no separate About tab).
+- [ ] Settings are grouped (Geral, Sessões, Avançado); **Sobre** appears at the bottom with version (no separate About tab). No global Browser defaults section.
 - [ ] Profiles root path validates (existing directory, writable).
 - [ ] Theme (system/light/dark) updates the app chrome without restart.
 - [ ] Save persists after restart (optional quick check).

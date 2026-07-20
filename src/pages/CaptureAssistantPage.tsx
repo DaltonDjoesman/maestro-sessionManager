@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { peekCachedRunningApps, rememberRunningApps } from "../captureCache";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "../components/RunningAppsCaptureList";
 import { RefreshIconButton } from "../components/RefreshIconButton";
 import { candidateKey, sortByDisplayName } from "../types/capture";
@@ -72,7 +72,7 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
       const apps = launchEntriesFromCandidates(chosen);
       const updated: SessionProfile = {
         ...profile,
-        name: pt.capture.defaultProfileName,
+        name: t.capture.defaultProfileName,
         applications: [...profile.applications, ...apps],
       };
       await invoke("save_session_profile", { path: created.filePath, profile: updated });
@@ -88,15 +88,15 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
     <div className="page capture-page">
       <div className="capture-page-header">
         <div className="view-title-group">
-          <h1 className="view-title">{pt.capture.title}</h1>
-          <p className="view-subtitle">{pt.capture.subtitle}</p>
+          <h1 className="view-title">{t.capture.title}</h1>
+          <p className="view-subtitle">{t.capture.subtitle}</p>
         </div>
         <RefreshIconButton onClick={() => void refresh()} disabled={busy} busy={busy} />
       </div>
 
       {workspaceGroupingUnavailable && !busy ? (
         <p className="capture-workspace-notice" role="status">
-          {pt.capture.workspaceGroupingUnavailable}
+          {t.capture.workspaceGroupingUnavailable}
         </p>
       ) : null}
 
@@ -117,7 +117,7 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
               disabled={busy || selectedCount === 0}
               onClick={() => void createFromCapture()}
             >
-              {pt.capture.createFromSelection}
+              {t.capture.createFromSelection}
             </button>
           </div>
         }

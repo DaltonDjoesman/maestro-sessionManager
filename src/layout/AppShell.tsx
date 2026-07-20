@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import { Sidebar, type AppRoute } from "./Sidebar";
 
 interface AppShellProps {
@@ -57,14 +57,14 @@ export function AppShell({
             >
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
-            <span className="app-title">{pt.appName}</span>
+            <span className="app-title">{t.appName}</span>
           </div>
           <div className="window-actions">
             <button
               type="button"
               className="btn-icon theme-toggle-btn"
-              aria-label={pt.shell.toggleTheme}
-              title={pt.shell.toggleTheme}
+              aria-label={t.shell.toggleTheme}
+              title={t.shell.toggleTheme}
               onClick={onThemeToggle}
             >
               {resolvedTheme === "dark" ? (
@@ -104,12 +104,12 @@ export function AppShell({
               <button
                 type="button"
                 className="btn-icon"
-                aria-label={pt.nav.openMenu}
+                aria-label={t.nav.openMenu}
                 onClick={() => setDrawerOpen(true)}
               >
                 ☰
               </button>
-              <span className="app-mobile-title">{pt.appName}</span>
+              <span className="app-mobile-title">{t.appName}</span>
             </header>
             <main className={`app-content${contentLayout === "pane" ? " app-content--pane" : ""}`}>{children}</main>
           </div>

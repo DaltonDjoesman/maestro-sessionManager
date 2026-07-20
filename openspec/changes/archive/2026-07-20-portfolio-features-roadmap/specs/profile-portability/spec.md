@@ -1,8 +1,5 @@
-# profile-portability Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change session-hub-activation-ux-export. Update Purpose after archive.
-## Requirements
 ### Requirement: Users SHALL export a session profile to JSON
 
 From the profile editor or catalog context menu, the user SHALL be able to export the current profile to a JSON file including `schema_version` and canonical fields. Export SHALL present a dedicated confirmation UI (modal or save dialog flow) showing what will be written rather than an unexplained silent write alone.
@@ -35,12 +32,3 @@ The app SHALL allow picking a JSON file, validating `schema_version` and require
 
 - **WHEN** the user imports a valid JSON profile
 - **THEN** the dedicated import UI SHALL collect the display name before saving
-
-### Requirement: Users SHALL duplicate a profile with a new name
-
-The catalog or editor SHALL offer “Duplicar” prompting for a new display name (and derived safe filename), copying all profile fields.
-
-#### Scenario: Duplicate creates independent copy
-
-**WHEN** duplication succeeds  
-**THEN** edits to the new profile SHALL not affect the original file until explicitly saved per profile lifecycle rules.

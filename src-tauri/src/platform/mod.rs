@@ -1,5 +1,6 @@
 //! OS-specific adapters (process listing). MVP targets Linux only.
 
+mod adapters;
 mod linux;
 mod wayland_windows;
 mod workspace;

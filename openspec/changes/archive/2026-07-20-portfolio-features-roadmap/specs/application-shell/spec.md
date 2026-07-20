@@ -1,8 +1,5 @@
-# application-shell Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change maestro-ui-redesign. Update Purpose after archive.
-## Requirements
 ### Requirement: Application SHALL use a persistent sidebar shell
 
 The application SHALL render a persistent sidebar with **Sessões**, **Captura**, and **Definições** as top-level destinations, plus **Editor** when a profile is being edited. **Sessões** SHALL be the default view on launch. There SHALL NOT be separate top-level **Home** or **About** navigation items.
@@ -30,17 +27,3 @@ The sidebar footer MAY show a **last activated session** indicator (name/status)
 
 - **WHEN** the user clears the last-activated indicator from the sidebar footer
 - **THEN** the application SHALL update only local UI state and SHALL NOT terminate processes launched by activation
-
-### Requirement: Theme tokens SHALL apply to the redesigned shell
-
-When `ApplicationSettings.theme` is set, the sidebar, window header, and main content SHALL use OKLCH design tokens from the exported prototype via `data-theme` on the document root. A header theme toggle SHALL cycle or toggle between light and dark consistent with saved settings.
-
-#### Scenario: Sidebar uses theme tokens
-
-- **WHEN** the application loads with a saved theme setting
-- **THEN** the sidebar, window header, and main content area SHALL render using CSS variables tied to `data-theme` on the document root
-
-#### Scenario: Theme toggle in header
-
-- **WHEN** the user clicks the theme toggle in the window header
-- **THEN** the application theme SHALL update immediately and persist through settings save

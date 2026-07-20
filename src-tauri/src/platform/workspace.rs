@@ -64,8 +64,16 @@ impl WorkspaceIndex {
             sources.push(WindowSource::Wmctrl(records));
         }
         // Native Wayland top-levels (Cosmic and others advertising foreign-toplevel).
+        // Cosmic may enrich `desktop`; GNOME/KWin/Hyprland use the same path without
+        // fabricating workspace indices (see `adapters` module).
         let wayland = super::wayland_windows::load_wayland_foreign_toplevel();
         if !wayland.is_empty() {
+            let family = super::adapters::detect_compositor_family();
+            if !super::adapters::workspace_enrichment_expected(family) {
+                eprintln!(
+                    "[maestro] compositor={family:?}: window list ok; workspace enrichment not claimed"
+                );
+            }
             sources.push(WindowSource::WaylandForeignToplevel(wayland));
         }
         merge_window_sources(sources)

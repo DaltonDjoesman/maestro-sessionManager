@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Backend dry-run / preview of activation steps without executing them.
+Backend dry-run / preview of activation steps without executing them, plus a user-facing dry-run control in the hub and/or editor.
 
 ## Requirements
 
@@ -20,11 +20,11 @@ The backend SHALL provide a command (e.g. `preview_session_activation`) that ret
 - **WHEN** preview is invoked
 - **THEN** no child processes for activation steps SHALL be started and no activation log SHALL be appended for real execution
 
-### Requirement: Dry-run UI is out of scope
+### Requirement: Dry-run UI SHALL be available from hub or editor
 
-A dedicated dry-run UI (hub overflow, editor tab) SHALL NOT be required in the current release. The preview command exists for tooling and future UI.
+The session hub and/or profile editor SHALL expose a control that invokes the preview-only activation command and shows the planned steps (labels and argv at minimum) without spawning activation processes. Preview presentation MAY reuse the activation results overlay shell with a clear preview mode indicator.
 
-#### Scenario: No dry-run button required
+#### Scenario: User runs preview from UI
 
-- **WHEN** the user views the session hub or profile editor
-- **THEN** the UI SHALL NOT be required to expose dry-run controls
+- **WHEN** the user triggers dry-run/preview for a valid profile from the hub or editor
+- **THEN** the UI SHALL display planned steps from the preview command and SHALL NOT start activation child processes

@@ -94,7 +94,7 @@ export function Sidebar({
             </div>
             {activeSessionLabel ? (
               <button type="button" className="btn btn-compact" onClick={onClearActiveSession}>
-                {pt.shell.deactivate}
+                {pt.shell.clearIndicator}
               </button>
             ) : null}
           </div>

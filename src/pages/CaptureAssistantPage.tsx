@@ -22,6 +22,11 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
+  const workspaceGroupingUnavailable = useMemo(() => {
+    if (runningApps.length === 0) return false;
+    return runningApps.every((c) => c.desktopWorkspace == null);
+  }, [runningApps]);
+
   const refresh = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -88,6 +93,12 @@ export function CaptureAssistantPage({ onEdit }: CaptureAssistantPageProps) {
         </div>
         <RefreshIconButton onClick={() => void refresh()} disabled={busy} busy={busy} />
       </div>
+
+      {workspaceGroupingUnavailable && !busy ? (
+        <p className="capture-workspace-notice" role="status">
+          {pt.capture.workspaceGroupingUnavailable}
+        </p>
+      ) : null}
 
       <RunningAppsCaptureList
         apps={runningApps}

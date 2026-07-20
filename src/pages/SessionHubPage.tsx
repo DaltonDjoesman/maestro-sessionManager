@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Modal } from "../components/Modal";
+import {
+  SMOKE_SESSION_EXAMPLE_NAME,
+  SMOKE_SESSION_PROFILE_JSON,
+} from "../examples/smokeSessionProfile";
 import { pt } from "../i18n/pt";
 import {
   loadLastSessionPath,
@@ -7,7 +12,12 @@ import {
   saveLastSessionPath,
   savePinnedPaths,
 } from "../sessionCatalogUi";
-import type { ActivateSessionResult, ActivationCompletePayload } from "../types/activation";
+import type {
+  ActivateSessionResult,
+  ActivationCompletePayload,
+  ActivationPreviewStep,
+  PreviewCompletePayload,
+} from "../types/activation";
 import { normalizeProfileForRun } from "../profileNormalize";
 import type {
   DuplicateProfileResult,
@@ -19,12 +29,32 @@ interface SessionHubPageProps {
   profilesRoot: string;
   onEdit: (filePath: string) => void;
   onActivationComplete: (payload: ActivationCompletePayload) => void;
+  onPreviewComplete: (payload: PreviewCompletePayload) => void;
+}
+
+type ImportDraft = {
+  json: string;
+  fileName: string;
+  displayName: string;
+  error: string | null;
+};
+
+type ExportDraft = {
+  path: string;
+  displayName: string;
+  profile: SessionProfile;
+  fileName: string;
+};
+
+function safeDownloadBase(name: string): string {
+  return name.replace(/[^\w\-]+/g, "_").slice(0, 80) || "session";
 }
 
 export function SessionHubPage({
   profilesRoot,
   onEdit,
   onActivationComplete,
+  onPreviewComplete,
 }: SessionHubPageProps) {
   const [rows, setRows] = useState<ProfileCatalogEntry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -33,6 +63,8 @@ export function SessionHubPage({
   const [search, setSearch] = useState("");
   const [pins, setPins] = useState<string[]>([]);
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
+  const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
+  const [exportDraft, setExportDraft] = useState<ExportDraft | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -126,6 +158,8 @@ export function SessionHubPage({
     [filteredRows, pins, lastSessionRow, lastSessionPath, search],
   );
 
+  const catalogEmpty = rows.length === 0 && !busy && !search.trim();
+
   const handleCreate = async () => {
     setBusy(true);
     setError(null);
@@ -133,6 +167,23 @@ export function SessionHubPage({
       const created = await invoke<{ filePath: string }>("create_session_profile", {});
       await refresh();
       onEdit(created.filePath);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateFromExample = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const dup = await invoke<DuplicateProfileResult>("import_session_profile_json", {
+        json: SMOKE_SESSION_PROFILE_JSON,
+        displayName: SMOKE_SESSION_EXAMPLE_NAME,
+      });
+      await refresh();
+      onEdit(dup.filePath);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -158,6 +209,27 @@ export function SessionHubPage({
       onActivationComplete({ label, result: null, error: message });
     } finally {
       setActivatingPath(null);
+    }
+  };
+
+  const previewProfile = async (entry: ProfileCatalogEntry) => {
+    setOpenMenuPath(null);
+    const label = entry.name ?? entry.fileName;
+    setBusy(true);
+    setError(null);
+    try {
+      const profile = await invoke<SessionProfile>("load_session_profile", { path: entry.filePath });
+      const steps = await invoke<ActivationPreviewStep[]>("preview_session_activation", {
+        path: entry.filePath,
+        profile: normalizeProfileForRun(profile),
+      });
+      onPreviewComplete({ label, steps, error: null });
+    } catch (e) {
+      const message = String(e);
+      setError(message);
+      onPreviewComplete({ label, steps: null, error: message });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -202,21 +274,18 @@ export function SessionHubPage({
     }
   };
 
-  const exportProfile = async (path: string, displayName: string) => {
+  const openExportModal = async (path: string, displayName: string) => {
     setOpenMenuPath(null);
     setBusy(true);
     setError(null);
     try {
       const profile = await invoke<SessionProfile>("load_session_profile", { path });
-      const json = JSON.stringify(profile, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const safe = displayName.replace(/[^\w\-]+/g, "_").slice(0, 80) || "session";
-      a.href = url;
-      a.download = `${safe}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      setExportDraft({
+        path,
+        displayName,
+        profile,
+        fileName: `${safeDownloadBase(displayName)}.json`,
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -224,18 +293,39 @@ export function SessionHubPage({
     }
   };
 
-  const handleImport = async (json: string, displayName: string) => {
+  const confirmExport = () => {
+    if (!exportDraft) return;
+    const json = JSON.stringify(exportDraft.profile, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const base = safeDownloadBase(exportDraft.fileName.replace(/\.json$/i, ""));
+    a.href = url;
+    a.download = `${base}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportDraft(null);
+  };
+
+  const handleImportConfirm = async () => {
+    if (!importDraft) return;
+    const trimmed = importDraft.displayName.trim();
+    if (!trimmed) {
+      setImportDraft({ ...importDraft, error: pt.hub.emptyName });
+      return;
+    }
     setBusy(true);
-    setError(null);
+    setImportDraft({ ...importDraft, error: null });
     try {
       const dup = await invoke<DuplicateProfileResult>("import_session_profile_json", {
-        json,
-        displayName,
+        json: importDraft.json,
+        displayName: trimmed,
       });
+      setImportDraft(null);
       await refresh();
       onEdit(dup.filePath);
     } catch (e) {
-      setError(String(e));
+      setImportDraft({ ...importDraft, error: String(e) });
     } finally {
       setBusy(false);
     }
@@ -257,15 +347,12 @@ export function SessionHubPage({
     }
 
     const defaultName = file.name.replace(/\.json$/i, "") || "Importado";
-    const name = window.prompt(pt.hub.importPrompt, defaultName);
-    if (name == null) return;
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(pt.hub.emptyName);
-      return;
-    }
-
-    await handleImport(json, trimmed);
+    setImportDraft({
+      json,
+      fileName: file.name,
+      displayName: defaultName,
+      error: null,
+    });
   };
 
   const renderCard = (r: ProfileCatalogEntry, opts?: { highlight?: boolean }) => {
@@ -286,53 +373,53 @@ export function SessionHubPage({
           onClick={r.valid ? () => onEdit(r.filePath) : undefined}
           onKeyDown={
             r.valid
-              ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
+              ? (ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
                     onEdit(r.filePath);
                   }
                 }
               : undefined
           }
         >
-        <div className="card-top">
-          <div className="card-title-group">
-            <h3 className="card-name">{label}</h3>
+          <div className="card-top">
+            <div className="card-title-group">
+              <h3 className="card-name">{label}</h3>
+            </div>
+            <button
+              type="button"
+              className={`card-btn${pinned ? " card-btn-active" : ""}`}
+              disabled={busy || !r.valid}
+              title={pinned ? pt.hub.unpin : pt.hub.pin}
+              aria-pressed={pinned}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                togglePin(r.filePath);
+              }}
+            >
+              ★
+            </button>
           </div>
-          <button
-            type="button"
-            className={`card-btn${pinned ? " card-btn-active" : ""}`}
-            disabled={busy || !r.valid}
-            title={pinned ? pt.hub.unpin : pt.hub.pin}
-            aria-pressed={pinned}
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePin(r.filePath);
-            }}
-          >
-            ★
-          </button>
+
+          <div className="card-badges">
+            {r.valid ? (
+              <>
+                {(r.applicationsCount ?? 0) > 0 ? (
+                  <span className="badge badge-gray">{pt.hub.appsCount(r.applicationsCount!)}</span>
+                ) : (
+                  <span className="badge badge-gray">{pt.hub.emptyContent}</span>
+                )}
+                {r.hasBrowser ? <span className="badge badge-accent">{pt.hub.hasBrowser}</span> : null}
+              </>
+            ) : (
+              <span className="badge badge-danger" title={r.error ?? ""}>
+                {pt.hub.invalid}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="card-badges">
-          {r.valid ? (
-            <>
-              {(r.applicationsCount ?? 0) > 0 ? (
-                <span className="badge badge-gray">{pt.hub.appsCount(r.applicationsCount!)}</span>
-              ) : (
-                <span className="badge badge-gray">{pt.hub.emptyContent}</span>
-              )}
-              {r.hasBrowser ? <span className="badge badge-accent">{pt.hub.hasBrowser}</span> : null}
-            </>
-          ) : (
-            <span className="badge badge-danger" title={r.error ?? ""}>
-              {pt.hub.invalid}
-            </span>
-          )}
-        </div>
-        </div>
-
-        <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+        <div className="card-actions" onClick={(ev) => ev.stopPropagation()}>
           <div className="card-action-btns">
             <button
               type="button"
@@ -356,13 +443,39 @@ export function SessionHubPage({
             </button>
             {menuOpen ? (
               <div className="overflow-menu" role="menu">
-                <button type="button" className="overflow-menu-item" role="menuitem" disabled={!r.valid} onClick={() => void exportProfile(r.filePath, label)}>
+                <button
+                  type="button"
+                  className="overflow-menu-item"
+                  role="menuitem"
+                  disabled={!r.valid}
+                  onClick={() => void previewProfile(r)}
+                >
+                  {pt.hub.preview}
+                </button>
+                <button
+                  type="button"
+                  className="overflow-menu-item"
+                  role="menuitem"
+                  disabled={!r.valid}
+                  onClick={() => void openExportModal(r.filePath, label)}
+                >
                   {pt.hub.export}
                 </button>
-                <button type="button" className="overflow-menu-item" role="menuitem" disabled={!r.valid} onClick={() => void handleDuplicateNamed(r.filePath, label)}>
+                <button
+                  type="button"
+                  className="overflow-menu-item"
+                  role="menuitem"
+                  disabled={!r.valid}
+                  onClick={() => void handleDuplicateNamed(r.filePath, label)}
+                >
                   {pt.hub.duplicateNamed}
                 </button>
-                <button type="button" className="overflow-menu-item danger" role="menuitem" onClick={() => void handleDelete(r.filePath, label)}>
+                <button
+                  type="button"
+                  className="overflow-menu-item danger"
+                  role="menuitem"
+                  onClick={() => void handleDelete(r.filePath, label)}
+                >
                   {pt.hub.delete}
                 </button>
               </div>
@@ -433,22 +546,132 @@ export function SessionHubPage({
         </div>
       </div>
 
-      {lastSessionRow && !search.trim() ? renderSection(pt.hub.continue, [lastSessionRow], true) : null}
-      {pinnedRows.length > 0 ? renderSection(pt.hub.pinned, pinnedRows) : null}
+      {catalogEmpty ? (
+        <section className="hub-empty-state" aria-live="polite">
+          <h2 className="hub-empty-title">{pt.hub.emptyTitle}</h2>
+          <p className="view-subtitle">{pt.hub.emptyBody}</p>
+          <div className="hub-empty-actions">
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void handleCreate()}>
+              {pt.hub.emptyCreate}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy}
+              onClick={() => void handleCreateFromExample()}
+            >
+              {pt.hub.emptyFromExample}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <>
+          {lastSessionRow && !search.trim() ? renderSection(pt.hub.continue, [lastSessionRow], true) : null}
+          {pinnedRows.length > 0 ? renderSection(pt.hub.pinned, pinnedRows) : null}
 
-      <section className="hub-section">
-        <h2 className="section-title">
-          {pt.hub.all} ({unpinnedRows.length + pinnedRows.length + (lastSessionRow && !search.trim() ? 1 : 0)})
-        </h2>
-        <div className="profile-grid">
-          {unpinnedRows.length === 0 && !busy ? (
-            <p className="view-subtitle hub-empty">{rows.length === 0 ? pt.hub.empty : pt.hub.emptySearch}</p>
-          ) : null}
-          {unpinnedRows.map((r) => renderCard(r))}
-        </div>
-      </section>
+          <section className="hub-section">
+            <h2 className="section-title">
+              {pt.hub.all} ({unpinnedRows.length + pinnedRows.length + (lastSessionRow && !search.trim() ? 1 : 0)})
+            </h2>
+            <div className="profile-grid">
+              {unpinnedRows.length === 0 && !busy ? (
+                <p className="view-subtitle hub-empty">{pt.hub.emptySearch}</p>
+              ) : null}
+              {unpinnedRows.map((r) => renderCard(r))}
+            </div>
+          </section>
+        </>
+      )}
 
       {busy && !activatingPath ? <p className="view-subtitle">{pt.hub.working}</p> : null}
+
+      <Modal
+        open={importDraft != null}
+        title={pt.import.title}
+        onClose={() => setImportDraft(null)}
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setImportDraft(null)} disabled={busy}>
+              {pt.import.cancel}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => void handleImportConfirm()} disabled={busy}>
+              {pt.import.confirm}
+            </button>
+          </>
+        }
+      >
+        {importDraft ? (
+          <>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.import.subtitle}
+            </p>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.import.fileSelected(importDraft.fileName)}
+            </p>
+            <label className="field">
+              <span>{pt.import.displayName}</span>
+              <input
+                type="text"
+                value={importDraft.displayName}
+                placeholder={pt.import.displayNamePlaceholder}
+                autoFocus
+                onChange={(e) =>
+                  setImportDraft({ ...importDraft, displayName: e.target.value, error: null })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleImportConfirm();
+                  }
+                }}
+              />
+            </label>
+            {importDraft.error ? (
+              <p className="field-error" role="alert">
+                {importDraft.error}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={exportDraft != null}
+        title={pt.export.title}
+        onClose={() => setExportDraft(null)}
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setExportDraft(null)}>
+              {pt.export.cancel}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={confirmExport}>
+              {pt.export.confirm}
+            </button>
+          </>
+        }
+      >
+        {exportDraft ? (
+          <>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.export.subtitle}
+            </p>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.export.schemaVersion(exportDraft.profile.schema_version)}
+            </p>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {exportDraft.displayName}
+            </p>
+            <label className="field">
+              <span>{pt.export.fileName}</span>
+              <input
+                type="text"
+                value={exportDraft.fileName}
+                onChange={(e) => setExportDraft({ ...exportDraft, fileName: e.target.value })}
+              />
+            </label>
+          </>
+        ) : null}
+      </Modal>
     </div>
   );
 }

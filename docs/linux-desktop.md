@@ -50,10 +50,14 @@ The running-apps assistant can **read** (not control) which virtual workspace a 
 |---------|-----------|-------------|
 | **X11** | `wmctrl -l -p` → EWMH desktop index per PID | Works when `wmctrl` is installed and the app has an X11 window |
 | **Wayland (Cosmic)** | `ext-foreign-toplevel-list-v1` for titles/`app_id`; `zcosmic_toplevel_info_v1` + `ext_workspace_manager_v1` for workspace (handle→stable 0-based index) | Window-first discovery with workspace headings when Cosmic grants those protocols; soft-fail omits `desktopWorkspace` (no fake “Workspace 1”) |
+| **Wayland (GNOME)** | Same foreign-toplevel when Mutter advertises it | **Titles only** — workspace enrichment is a documented no-op (unprivileged clients cannot portably read Mutter workspace membership) |
+| **Wayland (KWin / Hyprland)** | Foreign-toplevel when available | **Documented no-op** for workspace indices; capture still lists apps via process/`.desktop` scoring |
 | **Wayland + XWayland** | Supplemental `wmctrl -l -p` for XWayland clients only | Partial coverage — never treated as complete alone |
 | **Hybrid** (e.g. Flatpak app with `--ozone-platform=x11`) | Same as XWayland/`wmctrl` for that window’s PID | Best-effort per process |
 
-Maestro **does not** move or focus windows between workspaces.
+Maestro **does not** move or focus windows between workspaces. The Captura UI shows a short notice when no candidate carries `desktopWorkspace`.
+
+Adapter boundary: Cosmic protocol types stay in `src-tauri/src/platform/wayland_windows.rs`. Shared DTOs only expose optional numeric `desktopWorkspace`. See `src-tauri/src/platform/adapters.rs` for compositor family detection and enrichment expectations.
 
 ### Cosmic workspace grouping — 2026-07-17
 

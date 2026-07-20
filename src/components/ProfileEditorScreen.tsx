@@ -10,10 +10,16 @@ import {
   browserSettingsOf,
 } from "../browserDetect";
 import { ApplicationBrowserFields } from "./ApplicationBrowserFields";
+import { Modal } from "./Modal";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "./RunningAppsCaptureList";
 import { RefreshIconButton } from "./RefreshIconButton";
 import { normalizeProfile, normalizeProfileForRun } from "../profileNormalize";
-import type { ActivateSessionResult, ActivationCompletePayload } from "../types/activation";
+import type {
+  ActivateSessionResult,
+  ActivationCompletePayload,
+  ActivationPreviewStep,
+  PreviewCompletePayload,
+} from "../types/activation";
 import type { RunningAppCandidate } from "../types/capture";
 import { candidateKey, sortByDisplayName } from "../types/capture";
 import type {
@@ -31,11 +37,15 @@ import {
 
 type EditorTab = "content" | "capture";
 
+function safeDownloadBase(name: string): string {
+  return name.replace(/[^\w\-]+/g, "_").slice(0, 80) || "session";
+}
 interface ProfileEditorScreenProps {
   filePath: string;
   profilesRoot: string;
   onBack: () => void;
   onActivationComplete: (payload: ActivationCompletePayload) => void;
+  onPreviewComplete: (payload: PreviewCompletePayload) => void;
   onDeleted?: (label: string) => void;
 }
 
@@ -62,6 +72,7 @@ export function ProfileEditorScreen({
   profilesRoot,
   onBack,
   onActivationComplete,
+  onPreviewComplete,
   onDeleted,
 }: ProfileEditorScreenProps) {
   const [profile, setProfile] = useState<SessionProfile | null>(null);
@@ -85,6 +96,8 @@ export function ProfileEditorScreen({
     default_browser_executable: string | null;
     default_browser_family: BrowserFamily | null;
   } | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFileName, setExportFileName] = useState("session.json");
 
   const browserExecutablePlaceholder = useMemo(() => {
     const sys = systemBrowserHint?.executable?.trim();
@@ -232,6 +245,47 @@ export function ProfileEditorScreen({
     } finally {
       setBusy(false);
     }
+  };
+
+  const preview = async () => {
+    const toPreview = profileForRun();
+    if (!toPreview) return;
+    setBusy(true);
+    setSaveError(null);
+    try {
+      const steps = await invoke<ActivationPreviewStep[]>("preview_session_activation", {
+        path: filePath,
+        profile: toPreview,
+      });
+      onPreviewComplete({ label: sessionLabel, steps, error: null });
+    } catch (e) {
+      const message = String(e);
+      setSaveError(message);
+      onPreviewComplete({ label: sessionLabel, steps: null, error: message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openExport = () => {
+    if (!profile) return;
+    setExportFileName(`${safeDownloadBase(sessionLabel)}.json`);
+    setExportOpen(true);
+  };
+
+  const confirmExport = () => {
+    if (!profile) return;
+    const toExport = profileForPersist(profile);
+    const json = JSON.stringify(toExport, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const base = safeDownloadBase(exportFileName.replace(/\.json$/i, ""));
+    a.href = url;
+    a.download = `${base}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportOpen(false);
   };
 
   const deleteSession = async () => {
@@ -453,6 +507,12 @@ export function ProfileEditorScreen({
             <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
               {pt.editor.activate}
             </button>
+            <button type="button" className="btn btn-secondary btn-compact" disabled={busy} onClick={() => void preview()}>
+              {pt.editor.preview}
+            </button>
+            <button type="button" className="btn btn-secondary btn-compact" disabled={busy || !profile} onClick={openExport}>
+              {pt.hub.export}
+            </button>
             {saveToastVisible ? (
               <div className="save-toast" role="status">
                 <span className="save-toast-text">{pt.editor.savedToast}</span>
@@ -621,6 +681,41 @@ export function ProfileEditorScreen({
       ) : null}
 
       {editorTab === "capture" ? captureTab : null}
+
+      <Modal
+        open={exportOpen && profile != null}
+        title={pt.export.title}
+        onClose={() => setExportOpen(false)}
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(false)}>
+              {pt.export.cancel}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={confirmExport}>
+              {pt.export.confirm}
+            </button>
+          </>
+        }
+      >
+        {profile ? (
+          <>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.export.subtitle}
+            </p>
+            <p className="view-subtitle" style={{ margin: 0 }}>
+              {pt.export.schemaVersion(profile.schema_version)}
+            </p>
+            <label className="field">
+              <span>{pt.export.fileName}</span>
+              <input
+                type="text"
+                value={exportFileName}
+                onChange={(e) => setExportFileName(e.target.value)}
+              />
+            </label>
+          </>
+        ) : null}
+      </Modal>
     </div>
   );
 }

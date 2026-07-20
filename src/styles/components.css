@@ -662,6 +662,10 @@
   gap: 16px;
 }
 
+.modal-card--wide {
+  width: min(560px, 100%);
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;

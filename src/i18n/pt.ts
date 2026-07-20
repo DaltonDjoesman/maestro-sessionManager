@@ -14,13 +14,31 @@ export const pt = {
 
   shell: {
     toggleTheme: "Alternar tema",
-    activeSession: "Sessão activa",
+    activeSession: "Última activação",
     noActiveSession: "Nenhuma",
-    deactivate: "Desactivar",
+    clearIndicator: "Limpar indicador",
   },
 
   import: {
     invalidJson: "JSON inválido.",
+    title: "Importar perfil",
+    subtitle: "Escolhe um ficheiro JSON de sessão e o nome a mostrar no catálogo.",
+    displayName: "Nome do perfil",
+    displayNamePlaceholder: "Nome a guardar",
+    confirm: "Importar",
+    cancel: "Cancelar",
+    pickFile: "Escolher ficheiro…",
+    noFile: "Nenhum ficheiro seleccionado.",
+    fileSelected: (name: string) => `Ficheiro: ${name}`,
+  },
+
+  export: {
+    title: "Exportar perfil",
+    subtitle: "Vai ser guardado um JSON com schema_version e os campos do perfil.",
+    fileName: "Nome do ficheiro",
+    confirm: "Exportar",
+    cancel: "Cancelar",
+    schemaVersion: (v: number) => `schema_version: ${v}`,
   },
 
   capture: {
@@ -39,6 +57,8 @@ export const pt = {
     addToDraft: "Adicionar selecionadas",
     editorHint:
       "Selecciona janelas abertas para adicionar ao rascunho do perfil. A pasta de projecto detectada é aplicada automaticamente quando disponível.",
+    workspaceGroupingUnavailable:
+      "Agrupamento por workspace não está disponível neste compositor. A lista continua utilizável sem índices inventados.",
   },
 
   hub: {
@@ -53,7 +73,13 @@ export const pt = {
     all: "Todos os perfis",
     empty: "Nenhum perfil encontrado. Cria um ou verifica a pasta em Definições.",
     emptySearch: "Nenhum perfil corresponde à pesquisa.",
+    emptyTitle: "Ainda sem sessões",
+    emptyBody:
+      "Um perfil de sessão descreve as apps e URLs a lançar. Cria um novo, importa um JSON, ou começa a partir do exemplo de smoke test.",
+    emptyCreate: "Nova sessão",
+    emptyFromExample: "Criar a partir do exemplo",
     activate: "Ativar",
+    preview: "Pré-visualizar",
     edit: "Editar",
     more: "Mais ações",
     pin: "Fixar",
@@ -66,7 +92,6 @@ export const pt = {
     hasBrowser: "Browser",
     emptyContent: "Sem conteúdo",
     appsCount: (n: number) => `${n} app${n === 1 ? "" : "s"}`,
-    importPrompt: "Nome do perfil após importar",
     duplicatePrompt: "Nome para a cópia",
     deleteConfirm: (name: string) => `Apagar o perfil «${name}»? Esta ação não pode ser desfeita.`,
     emptyName: "Nome vazio.",
@@ -82,6 +107,7 @@ export const pt = {
     dismissToast: "Fechar",
     reload: "Recarregar do disco",
     activate: "Ativar sessão",
+    preview: "Pré-visualizar activação",
     loading: "A carregar…",
     tabContent: "Conteúdo",
     tabCapture: "Captura",
@@ -121,6 +147,9 @@ export const pt = {
 
   activation: {
     title: "Terminal Maestro",
+    previewTitle: "Pré-visualização",
+    previewBadge: "Modo pré-visualização — nenhum processo é lançado",
+    previewOutcome: "Plano de activação",
     dismiss: "Fechar",
     openLog: "Abrir log",
     escHint: "[Esc para fechar]",
@@ -131,8 +160,10 @@ export const pt = {
     statusFailure: "falhou",
     statusWarning: "aviso",
     statusSkipped: "ignorado",
+    statusWouldSkip: "ignoraria",
     emptySteps: "Sem passos devolvidos.",
     invokeError: (detail: string) => `Erro ao activar: ${detail}`,
+    previewError: (detail: string) => `Erro na pré-visualização: ${detail}`,
     openLogFailed: (detail: string) => `Não foi possível abrir o log: ${detail}`,
     summaryCounts: (c: { ok: number; failed: number; warned: number; skipped: number }) => {
       const parts: string[] = [];

@@ -14,25 +14,36 @@ import {
   saveLastSessionPath,
 } from "./sessionCatalogUi";
 import { applyDataThemeToDocument, resolveTheme } from "./themeDom";
-import type { ActivateSessionResult, ActivationCompletePayload } from "./types/activation";
+import type {
+  ActivateSessionResult,
+  ActivationCompletePayload,
+  ActivationPreviewStep,
+  PreviewCompletePayload,
+} from "./types/activation";
 import type { ApplicationSettings } from "./types/settings";
 import "./styles/tokens.css";
 import "./styles/themes.css";
 import "./styles/components.css";
 import "./App.css";
 
+type OverlayMode = "activation" | "preview";
+
 type ActivationOverlayState = {
   open: boolean;
+  mode: OverlayMode;
   sessionLabel: string;
   result: ActivateSessionResult | null;
+  previewSteps: ActivationPreviewStep[] | null;
   error: string | null;
   openLogError: string | null;
 };
 
 const closedOverlay: ActivationOverlayState = {
   open: false,
+  mode: "activation",
   sessionLabel: "",
   result: null,
+  previewSteps: null,
   error: null,
   openLogError: null,
 };
@@ -98,8 +109,10 @@ function App() {
     ({ label, result, error }: ActivationCompletePayload) => {
       setActivationOverlay({
         open: true,
+        mode: "activation",
         sessionLabel: label,
         result,
+        previewSteps: null,
         error,
         openLogError: null,
       });
@@ -111,6 +124,18 @@ function App() {
     },
     [profilesRoot],
   );
+
+  const handlePreviewComplete = useCallback(({ label, steps, error }: PreviewCompletePayload) => {
+    setActivationOverlay({
+      open: true,
+      mode: "preview",
+      sessionLabel: label,
+      result: null,
+      previewSteps: steps,
+      error,
+      openLogError: null,
+    });
+  }, []);
 
   const closeActivationOverlay = useCallback(() => {
     setActivationOverlay(closedOverlay);
@@ -167,6 +192,7 @@ function App() {
           profilesRoot={profilesRoot}
           onBack={closeEditor}
           onActivationComplete={handleActivationComplete}
+          onPreviewComplete={handlePreviewComplete}
           onDeleted={(label) => {
             if (activeSessionLabel === label) clearActiveSession();
           }}
@@ -178,6 +204,7 @@ function App() {
         profilesRoot={profilesRoot}
         onEdit={openEditor}
         onActivationComplete={handleActivationComplete}
+        onPreviewComplete={handlePreviewComplete}
       />
     );
   };
@@ -202,12 +229,15 @@ function App() {
       </div>
       <ActivationTerminalOverlay
         open={activationOverlay.open}
+        mode={activationOverlay.mode}
         sessionLabel={activationOverlay.sessionLabel}
         result={activationOverlay.result}
+        previewSteps={activationOverlay.previewSteps}
         error={activationOverlay.error}
         openLogError={activationOverlay.openLogError}
         onClose={closeActivationOverlay}
         onOpenLog={
+          activationOverlay.mode === "activation" &&
           activationOverlay.result?.activationLogPath?.trim()
             ? () => void handleOpenActivationLog()
             : undefined

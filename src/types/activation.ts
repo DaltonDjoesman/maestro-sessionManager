@@ -22,6 +22,13 @@ export type ActivationCompletePayload = {
   error: string | null;
 };
 
+/** Dry-run preview payload (no processes spawned). */
+export type PreviewCompletePayload = {
+  label: string;
+  steps: ActivationPreviewStep[] | null;
+  error: string | null;
+};
+
 export type ActivationPreviewStep = {
   stepType: string;
   label: string;

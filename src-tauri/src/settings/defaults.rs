@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::model::{
-    ApplicationSettings, BrowserFamily, LogVerbosity, UiTheme, CURRENT_SCHEMA_VERSION,
+    ApplicationSettings, LogVerbosity, UiTheme, CURRENT_SCHEMA_VERSION,
 };
 use super::SettingsError;
 
@@ -31,8 +31,6 @@ pub fn default_settings() -> Result<ApplicationSettings, SettingsError> {
     Ok(ApplicationSettings {
         schema_version: CURRENT_SCHEMA_VERSION,
         profiles_root: profiles_root.to_string_lossy().into_owned(),
-        default_browser_executable: None,
-        default_browser_family: Some(BrowserFamily::ChromiumLike),
         logging_verbosity: LogVerbosity::Info,
         theme: UiTheme::System,
     })

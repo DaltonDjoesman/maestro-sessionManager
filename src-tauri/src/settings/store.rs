@@ -92,7 +92,7 @@ impl SettingsStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::model::{BrowserFamily, UiTheme, CURRENT_SCHEMA_VERSION};
+    use crate::settings::model::{UiTheme, CURRENT_SCHEMA_VERSION};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -117,7 +117,6 @@ mod tests {
         let store = temp_store();
         let mut settings = default_settings().expect("defaults");
         settings.theme = UiTheme::Dark;
-        settings.default_browser_family = Some(BrowserFamily::Firefox);
 
         store.save(&settings).expect("save");
         assert!(store.path().exists());
@@ -133,7 +132,7 @@ mod tests {
         fs::create_dir_all(parent).unwrap();
         fs::write(
             store.path(),
-            r#"{"schema_version":99,"profiles_root":"/tmp/p","default_browser_executable":null,"default_browser_family":null,"logging_verbosity":"info","theme":"system"}"#,
+            r#"{"schema_version":99,"profiles_root":"/tmp/p","logging_verbosity":"info","theme":"system"}"#,
         )
         .unwrap();
 
@@ -157,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn load_legacy_assisted_flag_and_save_omits_it() {
+    fn load_legacy_browser_defaults_and_assisted_flag_and_save_omits_them() {
         let store = temp_store();
         let parent = store.path().parent().unwrap();
         fs::create_dir_all(parent).unwrap();
@@ -166,8 +165,8 @@ mod tests {
             r#"{
                 "schema_version": 1,
                 "profiles_root": "/tmp/maestro-legacy-profiles",
-                "default_browser_executable": null,
-                "default_browser_family": null,
+                "default_browser_executable": "/usr/bin/firefox",
+                "default_browser_family": "chromium_like",
                 "logging_verbosity": "info",
                 "theme": "system",
                 "assisted_profile_capture_enabled": false
@@ -183,6 +182,14 @@ mod tests {
         assert!(
             !written.contains("assisted_profile_capture_enabled"),
             "saved settings must omit legacy assisted flag, got: {written}"
+        );
+        assert!(
+            !written.contains("default_browser_executable"),
+            "saved settings must omit legacy browser executable, got: {written}"
+        );
+        assert!(
+            !written.contains("default_browser_family"),
+            "saved settings must omit legacy browser family, got: {written}"
         );
     }
 }

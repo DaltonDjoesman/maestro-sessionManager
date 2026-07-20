@@ -38,9 +38,6 @@ pub struct ApplicationSettings {
     pub schema_version: u32,
     /// Root directory for session profile JSON files.
     pub profiles_root: String,
-    /// Absolute path or name resolved on `PATH` when launching the default browser.
-    pub default_browser_executable: Option<String>,
-    pub default_browser_family: Option<BrowserFamily>,
     pub logging_verbosity: LogVerbosity,
     pub theme: UiTheme,
 }
@@ -54,7 +51,8 @@ impl ApplicationSettings {
         self.schema_version <= SUPPORTED_SCHEMA_VERSION
     }
 
-    /// Identity normalize; legacy keys (e.g. `assisted_profile_capture_enabled`) are ignored on deserialize.
+    /// Identity normalize; legacy keys (e.g. `assisted_profile_capture_enabled`,
+    /// `default_browser_executable`, `default_browser_family`) are ignored on deserialize.
     pub fn normalize(self) -> Self {
         self
     }
@@ -69,8 +67,6 @@ mod tests {
         let settings = ApplicationSettings {
             schema_version: CURRENT_SCHEMA_VERSION,
             profiles_root: "/home/user/.local/share/maestro/profiles".into(),
-            default_browser_executable: Some("firefox".into()),
-            default_browser_family: Some(BrowserFamily::Firefox),
             logging_verbosity: LogVerbosity::Info,
             theme: UiTheme::System,
         };
@@ -78,9 +74,10 @@ mod tests {
         let json = serde_json::to_string(&settings).expect("serialize");
         assert!(json.contains("\"schema_version\":1"));
         assert!(json.contains("\"profiles_root\""));
-        assert!(json.contains("\"default_browser_executable\""));
         assert!(json.contains("\"logging_verbosity\":\"info\""));
         assert!(json.contains("\"theme\":\"system\""));
+        assert!(!json.contains("default_browser_executable"));
+        assert!(!json.contains("default_browser_family"));
         assert!(!json.contains("assisted_profile_capture_enabled"));
     }
 
@@ -89,8 +86,6 @@ mod tests {
         let raw = r#"{
             "schema_version": 1,
             "profiles_root": "/tmp/maestro-profiles",
-            "default_browser_executable": null,
-            "default_browser_family": "chromium_like",
             "logging_verbosity": "warn",
             "theme": "dark"
         }"#;
@@ -98,21 +93,17 @@ mod tests {
         let settings: ApplicationSettings = serde_json::from_str(raw).expect("deserialize");
         assert_eq!(settings.schema_version, 1);
         assert_eq!(settings.profiles_root, "/tmp/maestro-profiles");
-        assert_eq!(
-            settings.default_browser_family,
-            Some(BrowserFamily::ChromiumLike)
-        );
         assert_eq!(settings.logging_verbosity, LogVerbosity::Warn);
         assert_eq!(settings.theme, UiTheme::Dark);
     }
 
     #[test]
-    fn ignores_legacy_assisted_profile_capture_enabled_on_deserialize() {
+    fn ignores_legacy_browser_defaults_and_assisted_flag_on_deserialize() {
         let raw = r#"{
             "schema_version": 1,
             "profiles_root": "/tmp/p",
-            "default_browser_executable": null,
-            "default_browser_family": null,
+            "default_browser_executable": "/usr/bin/firefox",
+            "default_browser_family": "chromium_like",
             "logging_verbosity": "info",
             "theme": "system",
             "assisted_profile_capture_enabled": false
@@ -121,5 +112,7 @@ mod tests {
         assert_eq!(s.profiles_root, "/tmp/p");
         let json = serde_json::to_string(&s).expect("serialize");
         assert!(!json.contains("assisted_profile_capture_enabled"));
+        assert!(!json.contains("default_browser_executable"));
+        assert!(!json.contains("default_browser_family"));
     }
 }

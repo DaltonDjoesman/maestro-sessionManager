@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import type { ApplicationSettings } from "../types/settings";
 
 interface SettingsScreenProps {
@@ -19,12 +19,12 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
   useEffect(() => {
     invoke<ApplicationSettings>("get_settings")
       .then(setForm)
-      .catch(() => setSaveError(pt.settings.loadError));
+      .catch(() => setSaveError(t.settings.loadError));
   }, []);
 
   const validateProfilesRoot = useCallback(async (path: string) => {
     if (!path.trim()) {
-      setProfilesError(pt.settings.profilesEmpty);
+      setProfilesError(t.settings.profilesEmpty);
       return false;
     }
     try {
@@ -64,7 +64,7 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
   if (!form) {
     return (
       <div className="page settings-page">
-        <p className="hint">{pt.settings.loading}</p>
+        <p className="hint">{t.settings.loading}</p>
       </div>
     );
   }
@@ -72,15 +72,15 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
   return (
     <div className="page settings-page">
       <div className="view-title-group">
-        <h1 className="view-title">{pt.settings.title}</h1>
-        <p className="view-subtitle">{pt.settings.tagline}</p>
+        <h1 className="view-title">{t.settings.title}</h1>
+        <p className="view-subtitle">{t.settings.tagline}</p>
       </div>
 
       <form className="settings-form settings-form--grouped" onSubmit={handleSubmit} noValidate>
         <fieldset className="form-section settings-group">
-          <legend className="form-section-title">{pt.settings.general}</legend>
+          <legend className="form-section-title">{t.settings.general}</legend>
           <label className="field">
-            <span>{pt.settings.theme}</span>
+            <span>{t.settings.theme}</span>
             <select
               className="form-select"
               value={form.theme}
@@ -90,17 +90,17 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
                 onThemePreview?.(theme);
               }}
             >
-              <option value="system">{pt.settings.themeSystem}</option>
-              <option value="light">{pt.settings.themeLight}</option>
-              <option value="dark">{pt.settings.themeDark}</option>
+              <option value="system">{t.settings.themeSystem}</option>
+              <option value="light">{t.settings.themeLight}</option>
+              <option value="dark">{t.settings.themeDark}</option>
             </select>
           </label>
         </fieldset>
 
         <fieldset className="form-section settings-group">
-          <legend className="form-section-title">{pt.settings.sessions}</legend>
+          <legend className="form-section-title">{t.settings.sessions}</legend>
           <label className="field">
-            <span>{pt.settings.profilesDir}</span>
+            <span>{t.settings.profilesDir}</span>
             <input
               type="text"
               value={form.profiles_root}
@@ -122,42 +122,9 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
         </fieldset>
 
         <fieldset className="form-section settings-group">
-          <legend className="form-section-title">{pt.settings.browser}</legend>
+          <legend className="form-section-title">{t.settings.advanced}</legend>
           <label className="field">
-            <span>{pt.settings.browserExecutable}</span>
-            <input
-              type="text"
-              value={form.default_browser_executable ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, default_browser_executable: e.target.value || null })
-              }
-              placeholder="/usr/bin/firefox"
-            />
-          </label>
-          <label className="field">
-            <span>{pt.settings.browserFamily}</span>
-            <select
-              className="form-select"
-              value={form.default_browser_family ?? ""}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  default_browser_family:
-                    (e.target.value as ApplicationSettings["default_browser_family"]) || null,
-                })
-              }
-            >
-              <option value="">{pt.settings.browserFamilyNone}</option>
-              <option value="chromium_like">{pt.settings.chromium}</option>
-              <option value="firefox">{pt.settings.firefox}</option>
-            </select>
-          </label>
-        </fieldset>
-
-        <fieldset className="form-section settings-group">
-          <legend className="form-section-title">{pt.settings.advanced}</legend>
-          <label className="field">
-            <span>{pt.settings.logging}</span>
+            <span>{t.settings.logging}</span>
             <select
               className="form-select"
               value={form.logging_verbosity}
@@ -182,22 +149,22 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
             {saveError}
           </p>
         ) : null}
-        {saved ? <p className="form-success">{pt.settings.saved}</p> : null}
+        {saved ? <p className="form-success">{t.settings.saved}</p> : null}
 
         <div className="form-actions">
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? pt.settings.saving : pt.settings.save}
+            {saving ? t.settings.saving : t.settings.save}
           </button>
         </div>
       </form>
 
       <section className="settings-about status-card">
-        <h2 className="settings-about-title">{pt.settings.aboutTitle}</h2>
+        <h2 className="settings-about-title">{t.settings.aboutTitle}</h2>
         <p>
-          <strong>{pt.settings.version}</strong> {String(version)}
+          <strong>{t.settings.version}</strong> {String(version)}
         </p>
-        <p className="hint">{pt.settings.aboutBody}</p>
-        <p className="hint">{pt.settings.aboutTech}</p>
+        <p className="hint">{t.settings.aboutBody}</p>
+        <p className="hint">{t.settings.aboutTech}</p>
       </section>
     </div>
   );

@@ -8,7 +8,7 @@ Global Maestro settings persistence and settings UI.
 
 ### Requirement: Global settings persistence
 
-The system SHALL persist global application settings to a local file (JSON or Tauri plugin store) with a `schema_version`. Settings SHALL include at minimum: profiles root directory path; default browser executable or detection hint; optional default browser family; logging verbosity; UI theme preference.
+The system SHALL persist global application settings to a local file (JSON or Tauri plugin store) with a `schema_version`. Settings SHALL include at minimum: profiles root directory path; logging verbosity; UI theme preference.
 
 #### Scenario: Load settings on startup
 
@@ -22,9 +22,11 @@ The system SHALL persist global application settings to a local file (JSON or Ta
 
 ### Requirement: Settings UI
 
-The system SHALL provide a settings screen grouped into sections styled per the prototype: **Geral** (theme), **Sessões** (profiles directory), **Browser** (defaults), and **Avançado** (logging verbosity). Each section SHALL use prototype form-section titles and field spacing. Invalid paths SHALL be rejected with inline validation errors before save. An **About** block with application version SHALL appear at the bottom of the settings screen; there SHALL NOT be a separate About route.
+The system SHALL provide a settings screen grouped into sections styled per the prototype: **Geral** (theme), **Sessões** (profiles directory), and **Avançado** (logging verbosity). Each section SHALL use prototype form-section titles and field spacing. Invalid paths SHALL be rejected with inline validation errors before save. An **About** block with application version SHALL appear at the bottom of the settings screen; there SHALL NOT be a separate About route.
 
 Running-apps capture is always enabled; there SHALL NOT be a separate **Assistente** toggle in settings; settings persistence SHALL NOT retain an assisted-capture enablement flag.
+
+There SHALL NOT be global default browser executable or family fields in settings; browser configuration lives on session profile application entries (and system browser detection may inform editor placeholders only).
 
 #### Scenario: Invalid profiles path
 
@@ -41,6 +43,11 @@ Running-apps capture is always enabled; there SHALL NOT be a separate **Assisten
 - **WHEN** the user opens Definições
 - **THEN** no Assistente enablement control SHALL be shown and saving settings SHALL not write an assisted-capture enablement field
 
+#### Scenario: No global browser defaults section
+
+- **WHEN** the user opens Definições
+- **THEN** no Browser section for default executable or family SHALL be shown
+
 ### Requirement: Settings schema SHALL omit assisted capture toggle field
 
 The persisted application settings document SHALL NOT include an `assisted_profile_capture_enabled` (or equivalent) field. Running-apps capture remains always enabled. When loading a settings file that still contains a legacy assisted-capture flag, the system SHALL ignore that field and SHALL persist settings without it on the next successful save.
@@ -54,6 +61,15 @@ The persisted application settings document SHALL NOT include an `assisted_profi
 
 - **WHEN** settings are saved after loading a file that contained `assisted_profile_capture_enabled`
 - **THEN** the written settings document SHALL omit that field
+
+### Requirement: Settings schema SHALL omit global browser defaults
+
+The persisted application settings document SHALL NOT include `default_browser_executable` or `default_browser_family`. When loading a settings file that still contains those legacy fields, the system SHALL ignore them and SHALL persist settings without them on the next successful save.
+
+#### Scenario: Legacy browser defaults load and drop on save
+
+- **WHEN** a settings file from an older build contains `default_browser_executable` and/or `default_browser_family`
+- **THEN** the application SHALL load successfully, SHALL NOT show those fields in Definições, and SHALL omit them from the document on the next successful save
 
 ### Requirement: Theme selection SHALL affect application chrome
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { peekCachedRunningApps, rememberRunningApps } from "../captureCache";
-import { pt } from "../i18n/pt";
+import { t } from "../i18n";
 import {
   emptyBrowserSettings,
   inferBrowserFamily,
@@ -27,7 +27,7 @@ import type {
   ApplicationLaunchEntry,
   SessionProfile,
 } from "../types/profile";
-import type { ApplicationSettings, BrowserFamily, SystemDefaultBrowserHint } from "../types/settings";
+import type { SystemDefaultBrowserHint } from "../types/settings";
 import {
   loadLastSessionPath,
   loadPinnedPaths,
@@ -55,16 +55,16 @@ function cloneProfile(p: SessionProfile): SessionProfile {
 
 function appDisplayLabel(app: ApplicationLaunchEntry, index: number): string {
   const exe = app.executable.trim();
-  if (!exe) return pt.editor.appN(index + 1);
+  if (!exe) return t.editor.appN(index + 1);
   const base = exe.split(/[/\\]/).pop() ?? exe;
   const cleaned = base.replace(/\.(AppImage|app)$/i, "");
-  if (!cleaned) return pt.editor.appN(index + 1);
+  if (!cleaned) return t.editor.appN(index + 1);
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
 function appSummaryHint(app: ApplicationLaunchEntry): string {
   const exe = app.executable.trim();
-  return exe || pt.editor.noExecutable;
+  return exe || t.editor.noExecutable;
 }
 
 export function ProfileEditorScreen({
@@ -92,10 +92,6 @@ export function ProfileEditorScreen({
   const [captureSearch, setCaptureSearch] = useState("");
   const [expandedAppIndex, setExpandedAppIndex] = useState<number | null>(null);
   const [systemBrowserHint, setSystemBrowserHint] = useState<SystemDefaultBrowserHint | null>(null);
-  const [settingsBrowserDefaults, setSettingsBrowserDefaults] = useState<{
-    default_browser_executable: string | null;
-    default_browser_family: BrowserFamily | null;
-  } | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportFileName, setExportFileName] = useState("session.json");
 
@@ -104,12 +100,8 @@ export function ProfileEditorScreen({
     if (sys) {
       return `System default (this PC): ${sys}`;
     }
-    const saved = settingsBrowserDefaults?.default_browser_executable?.trim();
-    if (saved) {
-      return `From Settings: ${saved}`;
-    }
     return "google-chrome-stable, firefox, brave-browser, …";
-  }, [systemBrowserHint, settingsBrowserDefaults]);
+  }, [systemBrowserHint]);
 
   const selectedRunningCount = useMemo(
     () => runningApps.reduce((n, c) => n + (selectedPids[candidateKey(c)] ? 1 : 0), 0),
@@ -132,22 +124,16 @@ export function ProfileEditorScreen({
     setLoadError(null);
     setSaveError(null);
     try {
-      const [p, settings, hint] = await Promise.all([
+      const [p, hint] = await Promise.all([
         invoke<SessionProfile>("load_session_profile", { path: filePath }),
-        invoke<ApplicationSettings>("get_settings"),
         invoke<SystemDefaultBrowserHint>("detect_system_default_browser"),
       ]);
       setProfile(normalizeProfile(cloneProfile(p)));
       setSystemBrowserHint(hint);
-      setSettingsBrowserDefaults({
-        default_browser_executable: settings.default_browser_executable,
-        default_browser_family: settings.default_browser_family,
-      });
     } catch (e) {
       setProfile(null);
       setLoadError(String(e));
       setSystemBrowserHint(null);
-      setSettingsBrowserDefaults(null);
     } finally {
       setBusy(false);
     }
@@ -290,7 +276,7 @@ export function ProfileEditorScreen({
 
   const deleteSession = async () => {
     if (!profile) return;
-    if (!window.confirm(pt.hub.deleteConfirm(sessionLabel))) return;
+    if (!window.confirm(t.hub.deleteConfirm(sessionLabel))) return;
     setBusy(true);
     setSaveError(null);
     try {
@@ -381,7 +367,7 @@ export function ProfileEditorScreen({
     setSelectedPids((prev) => ({ ...prev, ...patch }));
   };
 
-  const displayTitle = profile?.name?.trim() || pt.editor.title;
+  const displayTitle = profile?.name?.trim() || t.editor.title;
 
   const startEditingTitle = () => {
     if (!profile || busy) return;
@@ -403,7 +389,7 @@ export function ProfileEditorScreen({
       <div className="page profile-editor-page">
         <header className="editor-sticky-header">
           <button type="button" className="btn-secondary btn-compact" onClick={onBack}>
-            ← {pt.editor.back}
+            ← {t.editor.back}
           </button>
         </header>
         <p className="cleanup-msg error">{loadError}</p>
@@ -414,7 +400,7 @@ export function ProfileEditorScreen({
   if (!profile) {
     return (
       <div className="page profile-editor-page">
-        <p className="hint">{busy ? pt.editor.loading : "—"}</p>
+        <p className="hint">{busy ? t.editor.loading : "—"}</p>
       </div>
     );
   }
@@ -422,14 +408,14 @@ export function ProfileEditorScreen({
   const captureTab = (
     <section className="form-section capture-section">
       <div className="capture-section-header">
-        <h2 className="form-section-title capture-section-title">{pt.editor.tabCapture}</h2>
+        <h2 className="form-section-title capture-section-title">{t.editor.tabCapture}</h2>
         <RefreshIconButton
           onClick={() => void refreshRunningApps()}
           disabled={busy || runningBusy}
           busy={runningBusy}
         />
       </div>
-      <p className="view-subtitle">{pt.capture.editorHint}</p>
+      <p className="view-subtitle">{t.capture.editorHint}</p>
       <RunningAppsCaptureList
         apps={runningApps}
         search={captureSearch}
@@ -447,7 +433,7 @@ export function ProfileEditorScreen({
               disabled={busy || runningBusy || selectedRunningCount === 0}
               onClick={addSelectedRunningToDraft}
             >
-              {pt.capture.addToDraft}
+              {t.capture.addToDraft}
             </button>
           </div>
         }
@@ -466,8 +452,8 @@ export function ProfileEditorScreen({
                 type="text"
                 className="editor-title-input"
                 value={profile.name}
-                aria-label={pt.editor.name}
-                placeholder={pt.editor.namePlaceholder}
+                aria-label={t.editor.name}
+                placeholder={t.editor.namePlaceholder}
                 onChange={(e) => updateProfile({ name: e.target.value })}
                 onBlur={finishEditingTitle}
                 onKeyDown={(e) => {
@@ -486,13 +472,13 @@ export function ProfileEditorScreen({
                 type="button"
                 className="editor-title-button"
                 onClick={startEditingTitle}
-                title={pt.editor.renameTitle}
+                title={t.editor.renameTitle}
               >
                 {displayTitle}
               </button>
             )}
           </h1>
-          <p className="view-subtitle">{pt.editor.activateHint}</p>
+          <p className="view-subtitle">{t.editor.activateHint}</p>
         </div>
         <div className="editor-sticky-actions">
           <div className="editor-sticky-actions-start">
@@ -502,24 +488,24 @@ export function ProfileEditorScreen({
               disabled={busy}
               onClick={() => void save()}
             >
-              {saving ? pt.editor.saving : pt.editor.save}
+              {saving ? t.editor.saving : t.editor.save}
             </button>
             <button type="button" className="btn btn-activate btn-compact" disabled={busy} onClick={() => void activate()}>
-              {pt.editor.activate}
+              {t.editor.activate}
             </button>
             <button type="button" className="btn btn-secondary btn-compact" disabled={busy} onClick={() => void preview()}>
-              {pt.editor.preview}
+              {t.editor.preview}
             </button>
             <button type="button" className="btn btn-secondary btn-compact" disabled={busy || !profile} onClick={openExport}>
-              {pt.hub.export}
+              {t.hub.export}
             </button>
             {saveToastVisible ? (
               <div className="save-toast" role="status">
-                <span className="save-toast-text">{pt.editor.savedToast}</span>
+                <span className="save-toast-text">{t.editor.savedToast}</span>
                 <button
                   type="button"
                   className="save-toast-close"
-                  aria-label={pt.editor.dismissToast}
+                  aria-label={t.editor.dismissToast}
                   onClick={() => setSaveToastVisible(false)}
                 >
                   ×
@@ -534,7 +520,7 @@ export function ProfileEditorScreen({
               disabled={busy}
               onClick={() => void deleteSession()}
             >
-              {pt.hub.delete}
+              {t.hub.delete}
             </button>
           </div>
         </div>
@@ -548,14 +534,14 @@ export function ProfileEditorScreen({
           className={`tab-btn${editorTab === "content" ? " active" : ""}`}
           onClick={() => setEditorTab("content")}
         >
-          {pt.editor.tabContent}
+          {t.editor.tabContent}
         </button>
         <button
           type="button"
           className={`tab-btn${editorTab === "capture" ? " active" : ""}`}
           onClick={() => setEditorTab("capture")}
         >
-          {pt.editor.tabCapture}
+          {t.editor.tabCapture}
         </button>
       </nav>
 
@@ -564,14 +550,14 @@ export function ProfileEditorScreen({
       <section className="form-section">
         <div className="section-head">
           <h2 className="form-section-title" style={{ marginBottom: 0, borderBottom: "none", paddingBottom: 0 }}>
-            {pt.editor.applications}
+            {t.editor.applications}
           </h2>
           <button type="button" className="btn btn-secondary btn-compact" onClick={addApp}>
-            {pt.editor.addApp}
+            {t.editor.addApp}
           </button>
         </div>
         {profile.applications.length === 0 ? (
-          <p className="hint">{pt.editor.noApps}</p>
+          <p className="hint">{t.editor.noApps}</p>
         ) : null}
         {profile.applications.map((app, i) => {
           const browserApp = isBrowserApp(app);
@@ -605,7 +591,7 @@ export function ProfileEditorScreen({
               <span className="app-card-summary-badges">
                 {browserApp ? <span className="badge badge-gray">Browser</span> : null}
                 {app.skip_if_running ? (
-                  <span className="badge badge-gray">{pt.editor.skipIfRunningBadge}</span>
+                  <span className="badge badge-gray">{t.editor.skipIfRunningBadge}</span>
                 ) : null}
               </span>
             </button>
@@ -613,12 +599,12 @@ export function ProfileEditorScreen({
             <div className="app-card-body">
               <div className="app-card-body-header">
                 <button type="button" className="btn btn-secondary btn-compact danger" onClick={() => removeApp(i)}>
-                  {pt.editor.remove}
+                  {t.editor.remove}
                 </button>
               </div>
               <div className="app-card-grid">
                 <label className={`field${browserApp ? " field-full" : ""}`}>
-                  <span>{pt.editor.executable}</span>
+                  <span>{t.editor.executable}</span>
                   <input
                     type="text"
                     value={app.executable}
@@ -634,7 +620,7 @@ export function ProfileEditorScreen({
                 ) : (
                   <>
                     <label className="field">
-                      <span>{pt.editor.cwd}</span>
+                      <span>{t.editor.cwd}</span>
                       <input
                         type="text"
                         value={app.cwd ?? ""}
@@ -644,7 +630,7 @@ export function ProfileEditorScreen({
                       />
                     </label>
                     <label className="field field-full">
-                      <span>{pt.editor.args}</span>
+                      <span>{t.editor.args}</span>
                       <textarea
                         rows={3}
                         value={(app.args ?? []).join("\n")}
@@ -668,7 +654,7 @@ export function ProfileEditorScreen({
                       patchApp(i, { skip_if_running: e.target.checked ? true : null })
                     }
                   />
-                  <span>{pt.editor.skipIfRunning}</span>
+                  <span>{t.editor.skipIfRunning}</span>
                 </label>
               </div>
             </div>
@@ -684,15 +670,15 @@ export function ProfileEditorScreen({
 
       <Modal
         open={exportOpen && profile != null}
-        title={pt.export.title}
+        title={t.export.title}
         onClose={() => setExportOpen(false)}
         footer={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setExportOpen(false)}>
-              {pt.export.cancel}
+              {t.export.cancel}
             </button>
             <button type="button" className="btn btn-primary" onClick={confirmExport}>
-              {pt.export.confirm}
+              {t.export.confirm}
             </button>
           </>
         }
@@ -700,13 +686,13 @@ export function ProfileEditorScreen({
         {profile ? (
           <>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.export.subtitle}
+              {t.export.subtitle}
             </p>
             <p className="view-subtitle" style={{ margin: 0 }}>
-              {pt.export.schemaVersion(profile.schema_version)}
+              {t.export.schemaVersion(profile.schema_version)}
             </p>
             <label className="field">
-              <span>{pt.export.fileName}</span>
+              <span>{t.export.fileName}</span>
               <input
                 type="text"
                 value={exportFileName}

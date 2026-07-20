@@ -34,13 +34,7 @@ Clearing the sidebar “última activação” label only resets UI state — la
 |--------------------|----------|
 | ![Activation](docs/screenshots/activation-overlay.png) | ![Settings](docs/screenshots/settings.png) |
 
-### Demo loop
-
-Short motion demo of hub → capture → activate (pt-PT UI):
-
-![Hub → capture → activate](docs/demo/hub-activate-loop.gif)
-
-Notes and regenerate steps: [`docs/screenshots/`](docs/screenshots/) (includes the demo GIF).
+Notes and regenerate script: [`docs/screenshots/`](docs/screenshots/).
 
 ## Stack
 
@@ -118,7 +112,7 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 | [docs/smoke-test-checklist.md](docs/smoke-test-checklist.md) | Manual QA after `tauri dev` / release |
 | [docs/session-profile-schema.md](docs/session-profile-schema.md) | Profile JSON fields |
 | [docs/examples/](docs/examples/) | Example profiles for smoke tests |
-| [docs/screenshots/](docs/screenshots/) | Screenshot hub, demo GIF, capture checklist |
+| [docs/screenshots/](docs/screenshots/) | Screenshot hub + capture checklist |
 | [docs/follow-up-craft.md](docs/follow-up-craft.md) | Deferred craft (CLI, hotkeys, templates) |
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |

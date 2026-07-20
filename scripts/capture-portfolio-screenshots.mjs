@@ -5,10 +5,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.resolve(__dirname, "../docs/screenshots");
+const demoDir = path.resolve(__dirname, "../docs/demo");
 const baseUrl = process.env.MAESTRO_UI_URL || "http://localhost:1420/";
 const chrome =
   process.env.CHROME_PATH ||
@@ -315,3 +317,51 @@ await page.screenshot({ path: settingsPath, type: "png" });
 console.log("wrote", settingsPath);
 
 await browser.close();
+
+function writeDemoGif(hub, capture, overlay) {
+  fs.mkdirSync(demoDir, { recursive: true });
+  const gifPath = path.join(demoDir, "hub-activate-loop.gif");
+  const convertBin = ["convert", "magick"].find((bin) => spawnSync("which", [bin]).status === 0);
+  if (!convertBin) {
+    console.warn("ImageMagick not found; skipped demo GIF at", gifPath);
+    return;
+  }
+  const frameArgs = [
+    "(",
+    hub,
+    "-resize",
+    "720x450",
+    ")",
+    "(",
+    capture,
+    "-resize",
+    "720x450",
+    ")",
+    "(",
+    overlay,
+    "-resize",
+    "720x450",
+    ")",
+    "-delay",
+    "120",
+    "-loop",
+    "0",
+    "-layers",
+    "OptimizeTransparency",
+    "-colors",
+    "64",
+    "-dither",
+    "FloydSteinberg",
+    gifPath,
+  ];
+  // ImageMagick 7: `magick convert …`; ImageMagick 6: `convert …`
+  const args = convertBin === "magick" ? ["convert", ...frameArgs] : frameArgs;
+  const result = spawnSync(convertBin, args, { encoding: "utf8" });
+  if (result.status !== 0) {
+    console.warn("demo GIF failed:", result.stderr || result.stdout);
+    return;
+  }
+  console.log("wrote", gifPath);
+}
+
+writeDemoGif(hubPath, capturePath, overlayPath);

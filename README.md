@@ -34,12 +34,18 @@ Clearing the sidebar “última activação” label only resets UI state — la
 |--------------------|----------|
 | ![Activation](docs/screenshots/activation-overlay.png) | ![Settings](docs/screenshots/settings.png) |
 
-Notes and regenerate script: [`docs/screenshots/`](docs/screenshots/).
+### Demo loop
+
+Short motion demo of hub → capture → activate (pt-PT UI):
+
+![Hub → capture → activate](docs/demo/hub-activate-loop.gif)
+
+Notes and regenerate steps: [`docs/screenshots/`](docs/screenshots/) (includes the demo GIF).
 
 ## Stack
 
 - **Tauri 2** desktop shell
-- **React 19** + Vite UI (default locale **pt-PT**)
+- **React 19** + Vite UI — default locale **pt-PT**. An `en` locale module exists as an **i18n scaffold only** (stub / alias); there is no locale switcher and no shipped English UI yet.
 - **Rust** core: profiles, settings, activation, capture, platform adapters
 - **OpenSpec** for capability specs and change workflow (`.cursor/commands/`, `openspec/`)
 
@@ -112,9 +118,11 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 | [docs/smoke-test-checklist.md](docs/smoke-test-checklist.md) | Manual QA after `tauri dev` / release |
 | [docs/session-profile-schema.md](docs/session-profile-schema.md) | Profile JSON fields |
 | [docs/examples/](docs/examples/) | Example profiles for smoke tests |
-| [docs/screenshots/](docs/screenshots/) | Screenshot hub + capture checklist |
+| [docs/screenshots/](docs/screenshots/) | Screenshot hub, demo GIF, capture checklist |
+| [docs/follow-up-craft.md](docs/follow-up-craft.md) | Deferred craft (CLI, hotkeys, templates) |
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |
+| [docs/backend-workflow.md](docs/backend-workflow.md) | Activation / IPC workflow notes |
 | [openspec/specs/](openspec/specs/) | Normative product capabilities |
 | [design/](design/) | UI prototype / handoff assets |
 

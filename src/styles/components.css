@@ -977,7 +977,7 @@
 /* Application cards (collapsed summary / expanded body) are defined in App.css,
    alongside the rest of the profile editor's application-list styles. */
 
-.capture-page {
+.page.capture-page {
   display: flex;
   flex-direction: column;
   flex: 1;

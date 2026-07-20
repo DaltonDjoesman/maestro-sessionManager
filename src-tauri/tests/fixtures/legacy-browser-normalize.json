@@ -1,0 +1,54 @@
+{
+  "input": {
+    "schema_version": 1,
+    "session_id": "00000000-0000-4000-8000-000000000001",
+    "name": "Legacy Browser Session",
+    "applications": [
+      {
+        "executable": "cursor",
+        "args": ["."],
+        "cwd": "/home/u/proj",
+        "skip_if_running": null,
+        "browser": null
+      }
+    ],
+    "browser": {
+      "family": "firefox",
+      "executable": "/usr/bin/firefox",
+      "user_data_dir": null,
+      "firefox_profile": "default-release",
+      "firefox_no_remote": true,
+      "urls": ["https://example.com", "https://mozilla.org"]
+    },
+    "cleanup": null
+  },
+  "expected_after_normalize": {
+    "schema_version": 1,
+    "session_id": "00000000-0000-4000-8000-000000000001",
+    "name": "Legacy Browser Session",
+    "applications": [
+      {
+        "executable": "/usr/bin/firefox",
+        "args": [],
+        "cwd": null,
+        "skip_if_running": null,
+        "browser": {
+          "family": "firefox",
+          "user_data_dir": null,
+          "firefox_profile": "default-release",
+          "firefox_no_remote": true,
+          "urls": ["https://example.com", "https://mozilla.org"]
+        }
+      },
+      {
+        "executable": "cursor",
+        "args": ["."],
+        "cwd": "/home/u/proj",
+        "skip_if_running": null,
+        "browser": null
+      }
+    ],
+    "browser": null,
+    "cleanup": null
+  }
+}

@@ -53,27 +53,6 @@ pub fn workspace_enrichment_expected(family: CompositorFamily) -> bool {
     matches!(family, CompositorFamily::Cosmic)
 }
 
-/// GNOME Wayland: titles/`app_id` via shared foreign-toplevel path when Mutter
-/// advertises `ext-foreign-toplevel-list-v1`. Workspace membership is not exposed
-/// to unprivileged clients in a portable way — adapter is intentionally a no-op
-/// for `desktop` enrichment (best-effort discovery only).
-#[allow(dead_code)]
-pub fn gnome_workspace_enrichment_available() -> bool {
-    false
-}
-
-/// KWin / Plasma Wayland: same policy — no fabricated workspace indices.
-#[allow(dead_code)]
-pub fn kwin_workspace_enrichment_available() -> bool {
-    false
-}
-
-/// Hyprland: documented no-op for workspace indices (hyprctl could be spiked later).
-#[allow(dead_code)]
-pub fn hyprland_workspace_enrichment_available() -> bool {
-    false
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,9 +74,6 @@ mod tests {
 
     #[test]
     fn gnome_and_tilers_do_not_claim_workspace_enrichment() {
-        assert!(!gnome_workspace_enrichment_available());
-        assert!(!kwin_workspace_enrichment_available());
-        assert!(!hyprland_workspace_enrichment_available());
         assert!(!workspace_enrichment_expected(CompositorFamily::Gnome));
         assert!(!workspace_enrichment_expected(CompositorFamily::Kwin));
         assert!(!workspace_enrichment_expected(CompositorFamily::Hyprland));

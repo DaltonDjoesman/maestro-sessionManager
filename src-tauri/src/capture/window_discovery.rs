@@ -16,7 +16,7 @@ use crate::capture::assistant::{
 use crate::capture::classifier::{classify, flatpak_snap_path_hint, user_session_active, ScoreInput};
 use crate::capture::desktop_index::{humanize_basename, DesktopIndex};
 use crate::platform::{
-    denylisted_basename, has_resolved_executable, resolve_process_executable,
+    denylisted_basename, executable_basename, has_resolved_executable, resolve_process_executable,
     strip_deleted_exe_suffix, uses_window_first_discovery, WindowRecord, WorkspaceIndex,
 };
 
@@ -36,7 +36,7 @@ pub fn discover_running_app_candidates() -> Vec<RunningAppCandidate> {
         out = discover_from_processes(&desktop_index, &workspace_index);
     }
 
-    out.sort_by(|a, b| display_name_of(a).cmp(&display_name_of(b)));
+    out.sort_by_key(display_name_of);
     enrich_editor_cwd_hints(&mut out);
     if out.len() > MAX_CANDIDATES {
         out.truncate(MAX_CANDIDATES);
@@ -255,6 +255,7 @@ fn discover_from_processes(
     out
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_candidate(
     pid_u32: u32,
     proc: &Process,
@@ -426,27 +427,22 @@ fn executable_of(proc: &Process) -> String {
 }
 
 fn basename_of(proc: &Process, executable: &str) -> String {
-    let from_exe = proc.exe().and_then(|p| {
-        let owned = p.to_string_lossy().into_owned();
-        let cleaned = strip_deleted_exe_suffix(&owned);
-        Path::new(cleaned)
-            .file_name()
-            .and_then(OsStr::to_str)
-            .map(|s| s.to_lowercase())
-    });
-    from_exe
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| {
-            Path::new(executable)
-                .file_name()
-                .and_then(|s| s.to_str())
-                .map(|s| s.to_lowercase())
-                .unwrap_or_else(|| proc.name().to_string_lossy().to_lowercase())
-        })
+    let from_exe = proc
+        .exe()
+        .map(|p| executable_basename(&p.to_string_lossy()))
+        .filter(|s| !s.is_empty());
+    from_exe.unwrap_or_else(|| {
+        let from_path = executable_basename(executable);
+        if !from_path.is_empty() {
+            from_path
+        } else {
+            proc.name().to_string_lossy().to_lowercase()
+        }
+    })
 }
 
 fn basename_from_path(path: &str) -> String {
-    Path::new(path)
+    Path::new(strip_deleted_exe_suffix(path))
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or(path)

@@ -150,7 +150,6 @@ html,
   color: var(--accent);
 }
 
-.nav-item--disabled,
 .nav-item:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -588,20 +587,9 @@ html,
   border-color: #e57373;
 }
 
-.field-error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #e57373;
-}
-
 .form-error {
   margin: 0;
   color: #e57373;
-}
-
-.form-success {
-  margin: 0;
-  color: #81c784;
 }
 
 .form-actions {
@@ -619,16 +607,6 @@ html,
 .btn-compact.danger:not(.btn) {
   border-color: #8b4a4a;
   color: #f2a6a6;
-}
-
-
-.badge {
-  display: inline-block;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: lowercase;
 }
 
 

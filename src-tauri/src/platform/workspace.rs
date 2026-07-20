@@ -327,7 +327,7 @@ mod tests {
         assert_eq!(map.get(&41573), Some(&0));
         assert_eq!(map.get(&34702), Some(&1));
         assert_eq!(map.get(&9086), Some(&0));
-        assert!(map.get(&0).is_none());
+        assert!(!map.contains_key(&0));
         assert_eq!(windows.len(), 4);
     }
 

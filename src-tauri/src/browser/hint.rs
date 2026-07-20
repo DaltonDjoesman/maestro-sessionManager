@@ -17,7 +17,7 @@ pub struct SystemDefaultBrowserHint {
 pub fn detect_system_default_browser() -> SystemDefaultBrowserHint {
     #[cfg(target_os = "linux")]
     {
-        return detect_linux_default_browser();
+        detect_linux_default_browser()
     }
     #[cfg(not(target_os = "linux"))]
     {

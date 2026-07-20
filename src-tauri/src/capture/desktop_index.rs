@@ -164,7 +164,7 @@ impl DesktopIndex {
                 entry.app_id.is_none() && lower.contains(&entry.name.to_lowercase())
             })
             .collect();
-        name_matches.sort_by(|a, b| b.name.len().cmp(&a.name.len()));
+        name_matches.sort_by_key(|b| std::cmp::Reverse(b.name.len()));
         name_matches.into_iter().next()
     }
 
@@ -398,17 +398,6 @@ pub fn humanize_basename(basename: &str) -> String {
     match chars.next() {
         None => String::new(),
         Some(c) => c.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-
-#[cfg(test)]
-impl DesktopIndex {
-    pub fn from_entries(entries: Vec<(String, DesktopEntry)>) -> Self {
-        let mut index = Self::default();
-        for (_, entry) in entries {
-            index.register_entry(entry);
-        }
-        index
     }
 }
 

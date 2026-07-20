@@ -1,9 +1,4 @@
-[data-theme="light"] .profile-card--invalid {
-  border-color: var(--danger);
-  background: var(--danger-dim);
-}
-
-[data-theme="dark"] .profile-card--invalid {
+.profile-card--invalid {
   border-color: var(--danger);
   background: var(--danger-dim);
 }

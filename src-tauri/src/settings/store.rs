@@ -132,7 +132,7 @@ mod tests {
         fs::create_dir_all(parent).unwrap();
         fs::write(
             store.path(),
-            r#"{"schema_version":99,"profiles_root":"/tmp/p","logging_verbosity":"info","theme":"system"}"#,
+            r#"{"schema_version":99,"profiles_root":"/tmp/p","theme":"system"}"#,
         )
         .unwrap();
 
@@ -156,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn load_legacy_browser_defaults_and_assisted_flag_and_save_omits_them() {
+    fn load_legacy_logging_and_browser_defaults_and_save_omits_them() {
         let store = temp_store();
         let parent = store.path().parent().unwrap();
         fs::create_dir_all(parent).unwrap();
@@ -179,6 +179,10 @@ mod tests {
 
         store.save(&loaded).expect("save");
         let written = fs::read_to_string(store.path()).expect("read saved");
+        assert!(
+            !written.contains("logging_verbosity"),
+            "saved settings must omit legacy logging_verbosity, got: {written}"
+        );
         assert!(
             !written.contains("assisted_profile_capture_enabled"),
             "saved settings must omit legacy assisted flag, got: {written}"

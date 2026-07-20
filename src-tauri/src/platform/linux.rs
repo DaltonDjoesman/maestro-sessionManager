@@ -9,6 +9,18 @@ pub(crate) fn strip_deleted_exe_suffix(path: &str) -> &str {
         .unwrap_or_else(|| path.trim())
 }
 
+/// Lowercased basename of an executable path or plain name (e.g. `/usr/bin/Foo` → `foo`).
+///
+/// Shared by activation skip matching, browser family detection, and window discovery.
+pub(crate) fn executable_basename(executable: &str) -> String {
+    let t = strip_deleted_exe_suffix(executable.trim());
+    Path::new(t)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| t.to_lowercase())
+}
+
 /// Prefer an existing file: stripped `/proc` path, then argv0, then same basename on PATH.
 pub(crate) fn resolve_process_executable(proc: &Process) -> String {
     let from_exe = proc
@@ -269,6 +281,16 @@ mod tests {
             "/home/u/.local/share/cursor-editor/usr/share/cursor/cursor"
         );
         assert_eq!(strip_deleted_exe_suffix("/usr/bin/cursor"), "/usr/bin/cursor");
+    }
+
+    #[test]
+    fn executable_basename_from_path_is_file_component_lower() {
+        assert_eq!(executable_basename("/usr/bin/Foo"), "foo");
+        assert_eq!(executable_basename("Cursor"), "cursor");
+        assert_eq!(
+            executable_basename("/usr/bin/chrome (deleted)"),
+            "chrome"
+        );
     }
 
     #[test]

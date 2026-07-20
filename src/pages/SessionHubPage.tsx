@@ -5,6 +5,7 @@ import {
   SMOKE_SESSION_EXAMPLE_NAME,
   SMOKE_SESSION_PROFILE_JSON,
 } from "../examples/smokeSessionProfile";
+import { useHubImportExport } from "../hooks/useHubImportExport";
 import { t } from "../i18n";
 import {
   loadLastSessionPath,
@@ -32,24 +33,6 @@ interface SessionHubPageProps {
   onPreviewComplete: (payload: PreviewCompletePayload) => void;
 }
 
-type ImportDraft = {
-  json: string;
-  fileName: string;
-  displayName: string;
-  error: string | null;
-};
-
-type ExportDraft = {
-  path: string;
-  displayName: string;
-  profile: SessionProfile;
-  fileName: string;
-};
-
-function safeDownloadBase(name: string): string {
-  return name.replace(/[^\w\-]+/g, "_").slice(0, 80) || "session";
-}
-
 export function SessionHubPage({
   profilesRoot,
   onEdit,
@@ -63,9 +46,6 @@ export function SessionHubPage({
   const [search, setSearch] = useState("");
   const [pins, setPins] = useState<string[]>([]);
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
-  const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
-  const [exportDraft, setExportDraft] = useState<ExportDraft | null>(null);
-  const importFileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const lastSessionPath = profilesRoot.trim() ? loadLastSessionPath(profilesRoot) : null;
@@ -83,6 +63,24 @@ export function SessionHubPage({
       setBusy(false);
     }
   }, []);
+
+  const {
+    importDraft,
+    setImportDraft,
+    exportDraft,
+    setExportDraft,
+    importFileRef,
+    openExportModal,
+    confirmExport,
+    handleImportConfirm,
+    onImportFileSelected,
+  } = useHubImportExport({
+    setBusy,
+    setError,
+    refresh,
+    onEdit,
+    closeMenu: () => setOpenMenuPath(null),
+  });
 
   useEffect(() => {
     void refresh();
@@ -272,87 +270,6 @@ export function SessionHubPage({
     } finally {
       setBusy(false);
     }
-  };
-
-  const openExportModal = async (path: string, displayName: string) => {
-    setOpenMenuPath(null);
-    setBusy(true);
-    setError(null);
-    try {
-      const profile = await invoke<SessionProfile>("load_session_profile", { path });
-      setExportDraft({
-        path,
-        displayName,
-        profile,
-        fileName: `${safeDownloadBase(displayName)}.json`,
-      });
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const confirmExport = () => {
-    if (!exportDraft) return;
-    const json = JSON.stringify(exportDraft.profile, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const base = safeDownloadBase(exportDraft.fileName.replace(/\.json$/i, ""));
-    a.href = url;
-    a.download = `${base}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExportDraft(null);
-  };
-
-  const handleImportConfirm = async () => {
-    if (!importDraft) return;
-    const trimmed = importDraft.displayName.trim();
-    if (!trimmed) {
-      setImportDraft({ ...importDraft, error: t.hub.emptyName });
-      return;
-    }
-    setBusy(true);
-    setImportDraft({ ...importDraft, error: null });
-    try {
-      const dup = await invoke<DuplicateProfileResult>("import_session_profile_json", {
-        json: importDraft.json,
-        displayName: trimmed,
-      });
-      setImportDraft(null);
-      await refresh();
-      onEdit(dup.filePath);
-    } catch (e) {
-      setImportDraft({ ...importDraft, error: String(e) });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onImportFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setError(null);
-    let json: string;
-    try {
-      json = await file.text();
-      JSON.parse(json);
-    } catch {
-      setError(t.import.invalidJson);
-      return;
-    }
-
-    const defaultName = file.name.replace(/\.json$/i, "") || "Importado";
-    setImportDraft({
-      json,
-      fileName: file.name,
-      displayName: defaultName,
-      error: null,
-    });
   };
 
   const renderCard = (r: ProfileCatalogEntry, opts?: { highlight?: boolean }) => {

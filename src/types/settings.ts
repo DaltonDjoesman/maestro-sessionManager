@@ -6,13 +6,10 @@ export interface SystemDefaultBrowserHint {
   desktopEntry: string | null;
 }
 
-export type LogVerbosity = "error" | "warn" | "info" | "debug" | "trace";
-
 export type UiTheme = "system" | "light" | "dark";
 
 export interface ApplicationSettings {
   schema_version: number;
   profiles_root: string;
-  logging_verbosity: LogVerbosity;
   theme: UiTheme;
 }

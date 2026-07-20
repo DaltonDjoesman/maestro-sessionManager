@@ -6,17 +6,8 @@ use std::path::Path;
 use sysinfo::{ProcessesToUpdate, System};
 
 use crate::editors::is_known_editor_basename;
+use crate::platform::executable_basename;
 use crate::profiles::ApplicationLaunchEntry;
-
-/// Lowercased basename used for matching (e.g. `/usr/bin/Cursor` → `cursor`).
-pub fn executable_basename(executable: &str) -> String {
-    let t = crate::platform::strip_deleted_exe_suffix(executable.trim());
-    Path::new(t)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_else(|| t.to_lowercase())
-}
 
 /// Snapshot of lowercased executable basenames currently running on this machine.
 pub fn collect_running_executable_basenames() -> HashSet<String> {
@@ -24,13 +15,10 @@ pub fn collect_running_executable_basenames() -> HashSet<String> {
     sys.refresh_processes(ProcessesToUpdate::All, true);
     let mut set = HashSet::new();
     for proc in sys.processes().values() {
-        let from_exe = proc.exe().and_then(|p| {
-            let owned = p.to_string_lossy().into_owned();
-            let cleaned = crate::platform::strip_deleted_exe_suffix(&owned);
-            Path::new(cleaned)
-                .file_name()
-                .map(|n| n.to_string_lossy().to_lowercase())
-        });
+        let from_exe = proc
+            .exe()
+            .map(|p| executable_basename(&p.to_string_lossy()))
+            .filter(|s| !s.is_empty());
         let key = from_exe.unwrap_or_else(|| proc.name().to_string_lossy().to_lowercase());
         if !key.is_empty() {
             set.insert(key);
@@ -71,6 +59,7 @@ fn editor_should_relaunch_with_target(entry: &ApplicationLaunchEntry) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::platform::executable_basename;
 
     #[test]
     fn basename_from_path_is_file_component_lower() {

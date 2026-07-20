@@ -503,14 +503,14 @@ impl Dispatch<zcosmic_toplevel_handle_v1::ZcosmicToplevelHandleV1, u32> for Snap
                 }
                 state.cosmic_states.insert(*foreign_id, labels);
             }
-            zcosmic_toplevel_handle_v1::Event::OutputEnter { output } => {
-                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
-                    eprintln!(
-                        "[maestro:ws] OutputEnter foreign={} output={}",
-                        foreign_id,
-                        output.id().protocol_id()
-                    );
-                }
+            zcosmic_toplevel_handle_v1::Event::OutputEnter { output }
+                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() =>
+            {
+                eprintln!(
+                    "[maestro:ws] OutputEnter foreign={} output={}",
+                    foreign_id,
+                    output.id().protocol_id()
+                );
             }
             _ => {}
         }
@@ -595,10 +595,10 @@ impl Dispatch<ext_workspace_handle_v1::ExtWorkspaceHandleV1, ()> for SnapshotSta
                     _ => false,
                 };
             }
-            ext_workspace_handle_v1::Event::Id { id: ws_id } => {
-                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() {
-                    eprintln!("[maestro:ws] workspace Id handle={id} id={ws_id}");
-                }
+            ext_workspace_handle_v1::Event::Id { id: ws_id }
+                if std::env::var_os("MAESTRO_DEBUG_WORKSPACES").is_some() =>
+            {
+                eprintln!("[maestro:ws] workspace Id handle={id} id={ws_id}");
             }
             _ => {}
         }

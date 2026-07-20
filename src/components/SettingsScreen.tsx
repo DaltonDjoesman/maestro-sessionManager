@@ -121,29 +121,6 @@ export function SettingsScreen({ onReloadSettings, onThemePreview }: SettingsScr
           </label>
         </fieldset>
 
-        <fieldset className="form-section settings-group">
-          <legend className="form-section-title">{t.settings.advanced}</legend>
-          <label className="field">
-            <span>{t.settings.logging}</span>
-            <select
-              className="form-select"
-              value={form.logging_verbosity}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  logging_verbosity: e.target.value as ApplicationSettings["logging_verbosity"],
-                })
-              }
-            >
-              <option value="error">Error</option>
-              <option value="warn">Warn</option>
-              <option value="info">Info</option>
-              <option value="debug">Debug</option>
-              <option value="trace">Trace</option>
-            </select>
-          </label>
-        </fieldset>
-
         {saveError ? (
           <p className="form-error" role="alert">
             {saveError}

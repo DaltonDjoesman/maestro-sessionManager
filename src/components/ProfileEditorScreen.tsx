@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { peekCachedRunningApps, rememberRunningApps } from "../captureCache";
+import { downloadJsonFile, safeDownloadBase } from "../downloadJson";
 import { t } from "../i18n";
 import {
   emptyBrowserSettings,
@@ -13,6 +14,11 @@ import { ApplicationBrowserFields } from "./ApplicationBrowserFields";
 import { Modal } from "./Modal";
 import { RunningAppsCaptureList, launchEntriesFromCandidates } from "./RunningAppsCaptureList";
 import { RefreshIconButton } from "./RefreshIconButton";
+import {
+  appDisplayLabel,
+  appSummaryHint,
+  cloneProfile,
+} from "../profileEditorHelpers";
 import { normalizeProfile, normalizeProfileForRun } from "../profileNormalize";
 import type {
   ActivateSessionResult,
@@ -37,9 +43,6 @@ import {
 
 type EditorTab = "content" | "capture";
 
-function safeDownloadBase(name: string): string {
-  return name.replace(/[^\w\-]+/g, "_").slice(0, 80) || "session";
-}
 interface ProfileEditorScreenProps {
   filePath: string;
   profilesRoot: string;
@@ -47,24 +50,6 @@ interface ProfileEditorScreenProps {
   onActivationComplete: (payload: ActivationCompletePayload) => void;
   onPreviewComplete: (payload: PreviewCompletePayload) => void;
   onDeleted?: (label: string) => void;
-}
-
-function cloneProfile(p: SessionProfile): SessionProfile {
-  return JSON.parse(JSON.stringify(p)) as SessionProfile;
-}
-
-function appDisplayLabel(app: ApplicationLaunchEntry, index: number): string {
-  const exe = app.executable.trim();
-  if (!exe) return t.editor.appN(index + 1);
-  const base = exe.split(/[/\\]/).pop() ?? exe;
-  const cleaned = base.replace(/\.(AppImage|app)$/i, "");
-  if (!cleaned) return t.editor.appN(index + 1);
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-function appSummaryHint(app: ApplicationLaunchEntry): string {
-  const exe = app.executable.trim();
-  return exe || t.editor.noExecutable;
 }
 
 export function ProfileEditorScreen({
@@ -262,15 +247,7 @@ export function ProfileEditorScreen({
   const confirmExport = () => {
     if (!profile) return;
     const toExport = profileForPersist(profile);
-    const json = JSON.stringify(toExport, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const base = safeDownloadBase(exportFileName.replace(/\.json$/i, ""));
-    a.href = url;
-    a.download = `${base}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadJsonFile(JSON.stringify(toExport, null, 2), exportFileName);
     setExportOpen(false);
   };
 

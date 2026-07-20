@@ -3,19 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Classified running program for the profile editor assistant (camelCase for the web UI).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum CandidateKind {
     #[serde(rename = "app")]
     App,
+    #[default]
     #[serde(rename = "process")]
     Process,
-}
-
-impl Default for CandidateKind {
-    fn default() -> Self {
-        Self::Process
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -637,9 +632,9 @@ mod assistant_filter_tests {
         let title = "vite.config.ts - openspectutorial - Cursor";
         let cmd = vec![OsString::from("/usr/share/cursor/cursor")];
         let hint = cwd_hint_for_editor("cursor", 80853, &cmd, Some(title));
-        if hint.is_some() {
+        if let Some(ref path) = hint {
             assert!(
-                hint.as_ref().unwrap().ends_with("openspectutorial"),
+                path.ends_with("openspectutorial"),
                 "expected openspectutorial folder, got {hint:?}"
             );
         }

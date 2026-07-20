@@ -15,7 +15,7 @@ pub use validation::{validate_profiles_root_path, ProfilesRootValidationError};
 #[allow(unused_imports)] // Re-exported for tests and future command surface.
 pub use defaults::{default_profiles_root, default_settings};
 #[allow(unused_imports)]
-pub use model::{LogVerbosity, UiTheme};
+pub use model::UiTheme;
 #[allow(unused_imports)]
 pub use store::settings_file_path;
 

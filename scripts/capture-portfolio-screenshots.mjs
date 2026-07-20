@@ -155,7 +155,6 @@ const mockSource = `(() => {
   let settings = {
     schema_version: 1,
     profiles_root: profilesRoot,
-    logging_verbosity: 'info',
     theme: 'dark',
   };
 

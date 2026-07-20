@@ -307,4 +307,18 @@ mod tests {
         };
         assert!(p.validate("/p.json").is_err());
     }
+
+    #[test]
+    fn golden_legacy_browser_block_normalize_matches_fixture() {
+        #[derive(Deserialize)]
+        struct Fixture {
+            input: SessionProfile,
+            expected_after_normalize: SessionProfile,
+        }
+
+        let raw = include_str!("../../tests/fixtures/legacy-browser-normalize.json");
+        let fixture: Fixture = serde_json::from_str(raw).expect("parse fixture");
+        let got = fixture.input.normalize();
+        assert_eq!(got, fixture.expected_after_normalize);
+    }
 }

@@ -1,16 +1,7 @@
 //! Heuristic browser executable detection for profile normalization and capture.
 
+use crate::platform::executable_basename;
 use crate::settings::BrowserFamily;
-
-/// Lowercased basename of an executable path or plain name.
-pub fn executable_basename(executable: &str) -> String {
-    let t = executable.trim();
-    std::path::Path::new(t)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .map(|s| s.to_lowercase())
-        .unwrap_or_else(|| t.to_lowercase())
-}
 
 /// Infer browser family from executable basename/path, when recognizable.
 pub fn detect_browser_family(executable: &str) -> Option<BrowserFamily> {

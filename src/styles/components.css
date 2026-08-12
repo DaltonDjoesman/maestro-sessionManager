@@ -22,26 +22,45 @@
   border-color: var(--muted);
 }
 
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 .btn-primary {
-  background-color: var(--surface);
-  color: var(--accent);
-  border: 1px solid color-mix(in oklch, var(--accent) 55%, var(--border));
+  background-color: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--accent-dim);
-  border-color: var(--accent);
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.btn-primary:active:not(:disabled) {
+  filter: brightness(0.92);
 }
 
 .btn-secondary {
   background-color: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: var(--border-focus);
 }
 
 .btn-activate {
@@ -53,6 +72,10 @@
 .btn-activate:hover:not(:disabled) {
   background-color: var(--success-dim);
   border-color: var(--success);
+}
+
+.btn-activate:active:not(:disabled) {
+  filter: brightness(0.96);
 }
 
 .save-toast {
@@ -143,12 +166,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: all var(--transition-fast);
 }
 
 .btn-icon:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--fg);
   border-color: var(--border-focus);
+}
+
+.btn-icon:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .theme-toggle-btn {
@@ -161,6 +194,11 @@
   color: var(--fg);
   border: none;
   background: var(--surface-hover);
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .search-input-wrapper {
@@ -186,6 +224,7 @@
   outline: none;
   border-color: var(--border-focus);
   background-color: var(--bg);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 25%, transparent);
 }
 
 .search-icon {
@@ -296,13 +335,14 @@
   justify-content: space-between;
   min-height: 156px;
   position: relative;
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .profile-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-focus);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .profile-card--highlight {
@@ -423,6 +463,15 @@
   color: var(--fg);
 }
 
+.card-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .card-btn-active {
   color: var(--accent);
   border-color: var(--accent-dim);
@@ -467,6 +516,11 @@
   background-color: var(--surface-hover);
 }
 
+.overflow-menu-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .overflow-menu-item.danger {
   color: var(--danger);
 }
@@ -500,6 +554,11 @@
 
 .tab-btn:hover:not(:disabled) {
   color: var(--fg);
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .tab-btn.active {
@@ -574,18 +633,18 @@
   width: 100%;
   height: 36px;
   min-height: 36px;
-  background-color: #0d0f14;
-  border: 1px solid #4a5568;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0 36px 0 12px;
-  color: #ffffff;
+  color: var(--fg);
   font: inherit;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #d1d5db 50%),
-    linear-gradient(135deg, #d1d5db 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position:
     calc(100% - 1.1rem) calc(50% + 0.12rem),
     calc(100% - 0.75rem) calc(50% + 0.12rem);
@@ -602,8 +661,8 @@
 
 .field select option,
 .form-select option {
-  background: #1a1d26;
-  color: #ffffff;
+  background: var(--surface);
+  color: var(--fg);
   font-weight: 500;
 }
 
@@ -621,6 +680,7 @@
 .field textarea:focus {
   outline: none;
   border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 25%, transparent);
 }
 
 .checkbox-label {

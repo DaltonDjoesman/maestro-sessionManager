@@ -2,6 +2,8 @@
 
 This document supports the OpenSpec capability **backend-dev-workflow** (canonical spec: [`openspec/specs/backend-dev-workflow/spec.md`](../openspec/specs/backend-dev-workflow/spec.md)).
 
+For a human-readable system overview (layers, IPC map, key flows), see [`docs/architecture.md`](./architecture.md).
+
 ## Scope
 
 Treat **backend** work as changes under **`src-tauri/`**: Rust modules, Tauri commands, `Cargo.toml`, and `tauri.conf.json` when it affects runtime behavior.

@@ -6,7 +6,24 @@
 
 Maestro is a **personal portfolio project** (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
 
-> *PT:* O Maestro é um lançador de sessões Linux (perfis JSON → captura → activação). Não controla o posicionamento de janelas nem encerra processos.
+**Download:** [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) — Linux `.deb` / AppImage (v0.1.0+). To build from source, see [Quick start](#quick-start).
+
+## About
+
+Built by [DaltonDjoesman](https://github.com/DaltonDjoesman) as a personal portfolio project. Highlights:
+
+- End-to-end desktop app: React UI → Tauri IPC → Rust services
+- Session activation pipeline (spawn, preview/dry-run, step timeline)
+- Linux capture assistant (process/window discovery, compositor-aware adapters)
+- Spec-driven workflow (OpenSpec) + CI (`cargo test`, Vitest, `npm run build`)
+
+## Reading guide
+
+| Audience | Start here |
+|----------|------------|
+| **Recruiter / quick scan** | [Demo](#demo), [Screenshots](#screenshots), [Problem](#problem) |
+| **Developer** | [docs/architecture.md](docs/architecture.md), [docs/linux-desktop.md](docs/linux-desktop.md), [openspec/specs/](openspec/specs/) |
+| **Try it** | [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) or [Quick start](#quick-start) |
 
 ## Problem
 
@@ -31,10 +48,12 @@ Clearing the sidebar “última activação” label only resets UI state — la
   <source src="docs/screenshots/maestro-activate-demo.mp4" type="video/mp4">
 </video>
 
-*Seleccionar sessão → **Ativar** → overlay de resultados → apps e URLs no desktop (Pop!_OS).*  
+*Select a session → **Ativar** → results overlay → apps and URLs on the desktop (Pop!_OS).*  
 If the player does not embed in your viewer, open [maestro-activate-demo.mp4](docs/screenshots/maestro-activate-demo.mp4) / [maestro-activate-demo.webm](docs/screenshots/maestro-activate-demo.webm).
 
 ## Screenshots
+
+UI locale: **pt-PT** (English i18n scaffold only — no locale switcher yet).
 
 | Session hub | Capture assistant |
 |-------------|-------------------|
@@ -83,7 +102,7 @@ npm install
 npm run tauri build
 ```
 
-Artifacts land under `src-tauri/target/release/bundle/` (e.g. `.deb`, AppImage depending on bundler targets). See [docs/packaging.md](docs/packaging.md).
+Artifacts land under `src-tauri/target/release/bundle/` (e.g. `.deb`, AppImage depending on bundler targets). See [docs/packaging.md](docs/packaging.md) and [docs/releasing.md](docs/releasing.md).
 
 ## Architecture (short)
 
@@ -97,7 +116,7 @@ Rust lib (profiles, settings, activation, capture, platform)
 OS: spawn apps/browser · list windows · write local JSON
 ```
 
-Activation returns a step timeline to an in-app overlay. Profiles and settings stay on disk — no cloud accounts. Deeper notes: [docs/backend-workflow.md](docs/backend-workflow.md), [docs/linux-desktop.md](docs/linux-desktop.md), [docs/session-profile-schema.md](docs/session-profile-schema.md).
+Activation returns a step timeline to an in-app overlay. Profiles and settings stay on disk — no cloud accounts. Full overview: [docs/architecture.md](docs/architecture.md). Also: [docs/linux-desktop.md](docs/linux-desktop.md), [docs/session-profile-schema.md](docs/session-profile-schema.md).
 
 ## Security
 
@@ -119,14 +138,16 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 
 | Doc | Purpose |
 |-----|---------|
+| [docs/architecture.md](docs/architecture.md) | System layers, IPC map, key flows |
+| [docs/releasing.md](docs/releasing.md) | Tag + GitHub Release with Linux installers |
 | [docs/smoke-test-checklist.md](docs/smoke-test-checklist.md) | Manual QA after `tauri dev` / release |
 | [docs/session-profile-schema.md](docs/session-profile-schema.md) | Profile JSON fields |
-| [docs/examples/](docs/examples/) | Example profiles for smoke tests |
+| [docs/examples/](docs/examples/) | Example profiles for smoke tests / demo recording |
 | [docs/screenshots/](docs/screenshots/) | Screenshots + README demo video checklist |
 | [docs/follow-up-craft.md](docs/follow-up-craft.md) | Deferred craft (CLI, hotkeys, templates) |
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |
-| [docs/backend-workflow.md](docs/backend-workflow.md) | Activation / IPC workflow notes |
+| [docs/backend-workflow.md](docs/backend-workflow.md) | Agent-oriented backend workflow |
 | [openspec/specs/](openspec/specs/) | Normative product capabilities |
 | [design/](design/) | UI prototype / handoff assets |
 

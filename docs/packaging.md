@@ -36,6 +36,8 @@ Artifacts typically land under `src-tauri/target/release/bundle/`:
 
 Also see [linux-desktop.md](./linux-desktop.md) for `.desktop` / MIME notes after install.
 
+After a successful local build, publish a tagged GitHub Release with the installers — see [releasing.md](./releasing.md).
+
 ## Native dependency families
 
 ### Debian / Ubuntu / Pop!_OS

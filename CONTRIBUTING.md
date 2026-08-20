@@ -13,10 +13,13 @@ Maestro is a **personal portfolio project**, not a commercial product or large c
 ```bash
 npm install
 npm run build
+npm test
 cd src-tauri && cargo test
 ```
 
 Manual paths: [docs/smoke-test-checklist.md](docs/smoke-test-checklist.md).
+
+System overview: [docs/architecture.md](docs/architecture.md). Publishing installers: [docs/releasing.md](docs/releasing.md).
 
 ## Security
 

@@ -17,6 +17,13 @@ migrate_working_dir/
 .metadata
 skills-lock.json
 
+# Local tooling (static ffmpeg, etc.)
+.tools/
+
+# Demo video temp artifacts
+docs/screenshots/_demo-frames/
+docs/screenshots/_demo-raw.mp4
+
 # IntelliJ related
 *.iml
 *.ipr

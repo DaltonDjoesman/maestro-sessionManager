@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "session_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+  "name": "Demo README",
+  "applications": [
+    {
+      "executable": "/usr/bin/gnome-terminal",
+      "args": [],
+      "cwd": null,
+      "skip_if_running": true,
+      "browser": null
+    },
+    {
+      "executable": "/usr/bin/firefox",
+      "args": [],
+      "cwd": null,
+      "skip_if_running": true,
+      "browser": {
+        "family": "firefox",
+        "user_data_dir": null,
+        "firefox_profile": null,
+        "firefox_no_remote": null,
+        "urls": [
+          "https://example.com",
+          "https://github.com/DaltonDjoesman/maestro-sessionManager"
+        ]
+      }
+    }
+  ],
+  "browser": null,
+  "cleanup": null
+}

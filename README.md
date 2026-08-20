@@ -24,6 +24,16 @@ Starting a familiar Linux work setup usually means manually opening the same app
 
 Clearing the sidebar “última activação” label only resets UI state — launched apps keep running.
 
+## Demo
+
+<video autoplay loop muted playsinline controls width="100%" poster="docs/screenshots/hub.png">
+  <source src="docs/screenshots/maestro-activate-demo.webm" type="video/webm">
+  <source src="docs/screenshots/maestro-activate-demo.mp4" type="video/mp4">
+</video>
+
+*Seleccionar sessão → **Ativar** → overlay de resultados → apps e URLs no desktop (Pop!_OS).*  
+If the player does not embed in your viewer, open [maestro-activate-demo.mp4](docs/screenshots/maestro-activate-demo.mp4) / [maestro-activate-demo.webm](docs/screenshots/maestro-activate-demo.webm).
+
 ## Screenshots
 
 | Session hub | Capture assistant |
@@ -34,7 +44,7 @@ Clearing the sidebar “última activação” label only resets UI state — la
 |--------------------|----------|
 | ![Activation](docs/screenshots/activation-overlay.png) | ![Settings](docs/screenshots/settings.png) |
 
-Notes and regenerate script: [`docs/screenshots/`](docs/screenshots/).
+Notes, demo video checklist, and regenerate scripts: [`docs/screenshots/`](docs/screenshots/).
 
 ## Stack
 
@@ -112,7 +122,7 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 | [docs/smoke-test-checklist.md](docs/smoke-test-checklist.md) | Manual QA after `tauri dev` / release |
 | [docs/session-profile-schema.md](docs/session-profile-schema.md) | Profile JSON fields |
 | [docs/examples/](docs/examples/) | Example profiles for smoke tests |
-| [docs/screenshots/](docs/screenshots/) | Screenshot hub + capture checklist |
+| [docs/screenshots/](docs/screenshots/) | Screenshots + README demo video checklist |
 | [docs/follow-up-craft.md](docs/follow-up-craft.md) | Deferred craft (CLI, hotkeys, templates) |
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |

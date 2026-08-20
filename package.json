@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "capture:screenshots": "node scripts/capture-portfolio-screenshots.mjs",
+    "capture:demo-video": "node scripts/capture-demo-video.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

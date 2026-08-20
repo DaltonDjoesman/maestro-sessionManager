@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <title>Maestro demo desktop</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; height: 100%; overflow: hidden;
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background: #1a1b26;
+        color: #e8e8ef;
+      }
+      .panel {
+        height: 36px; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 14px; background: #111218; border-bottom: 1px solid #2a2b36;
+        font-size: 12px; color: #b8b9c6;
+      }
+      .panel .ws { display: flex; gap: 8px; align-items: center; }
+      .panel .dot {
+        width: 10px; height: 10px; border-radius: 50%; background: #3a3b4a;
+      }
+      .panel .dot.on { background: #6ee7b7; box-shadow: 0 0 0 2px rgba(110,231,183,.25); }
+      .desk {
+        position: relative; height: calc(100% - 36px);
+        background:
+          radial-gradient(1200px 600px at 20% 10%, #243049 0%, transparent 55%),
+          radial-gradient(900px 500px at 80% 80%, #2a1f3d 0%, transparent 50%),
+          #1a1b26;
+        padding: 28px;
+      }
+      .win {
+        position: absolute; border-radius: 10px; overflow: hidden;
+        background: #12131a; border: 1px solid #323348;
+        box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      }
+      .titlebar {
+        height: 34px; display: flex; align-items: center; gap: 8px;
+        padding: 0 12px; background: #1c1d28; border-bottom: 1px solid #2e2f3d;
+        font-size: 12px; color: #c5c6d4;
+      }
+      .traffic { display: flex; gap: 6px; }
+      .traffic i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+      .traffic .r { background: #ff5f56; }
+      .traffic .y { background: #ffbd2e; }
+      .traffic .g { background: #27c93f; }
+      .term {
+        left: 48px; top: 48px; width: 520px; height: 320px;
+      }
+      .term pre {
+        margin: 0; padding: 14px 16px; height: calc(100% - 34px);
+        font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+        font-size: 13px; line-height: 1.45; color: #d7f5e3; background: #0b0c10;
+        white-space: pre-wrap;
+      }
+      .prompt { color: #6ee7b7; }
+      .browser {
+        right: 40px; top: 64px; width: 640px; height: 420px;
+      }
+      .urlbar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 12px; background: #161722; border-bottom: 1px solid #2e2f3d;
+        font-size: 12px;
+      }
+      .urlbar .lock { color: #6ee7b7; }
+      .urlbar .box {
+        flex: 1; background: #0f1018; border: 1px solid #33354a; border-radius: 6px;
+        padding: 6px 10px; color: #cfd0dc;
+      }
+      .page {
+        height: calc(100% - 34px - 41px); background: #fff; color: #1a1a1a;
+        padding: 48px 56px; font-family: "Times New Roman", Times, serif;
+      }
+      .page h1 { font-size: 36px; margin: 0 0 16px; }
+      .page p { font-size: 16px; max-width: 42ch; line-height: 1.4; }
+      .page a { color: #38488f; }
+      .badge {
+        position: absolute; left: 28px; bottom: 24px;
+        background: rgba(17,18,24,.85); border: 1px solid #34364a;
+        border-radius: 999px; padding: 8px 14px; font-size: 12px; color: #c9cad8;
+      }
+      .badge strong { color: #6ee7b7; }
+      #cursor {
+        position: fixed; z-index: 9999; width: 18px; height: 18px; pointer-events: none;
+        left: 700px; top: 280px;
+        background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M1 1 L1 15 L5 12 L8 17 L10 16 L7 11 L13 11 Z' fill='black' stroke='white' stroke-width='1.2'/></svg>") no-repeat;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,.45));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div class="ws">
+        <span class="dot"></span><span class="dot on"></span><span class="dot"></span>
+        <span>Activities</span>
+      </div>
+      <div>Demo desktop</div>
+      <div>Pop!_OS · Cosmic</div>
+    </div>
+    <div class="desk">
+      <div class="win term">
+        <div class="titlebar">
+          <div class="traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <span>Terminal — Demo README</span>
+        </div>
+        <pre><span class="prompt">demo@pop-os:~$</span> echo 'Maestro demo session'
+Maestro demo session
+<span class="prompt">demo@pop-os:~$</span> </pre>
+      </div>
+      <div class="win browser">
+        <div class="titlebar">
+          <div class="traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+          <span>Example Domain — Firefox</span>
+        </div>
+        <div class="urlbar">
+          <span class="lock">🔒</span>
+          <div class="box">https://example.com</div>
+        </div>
+        <div class="page">
+          <h1>Example Domain</h1>
+          <p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p>
+          <p><a href="#">More information...</a></p>
+        </div>
+      </div>
+      <div class="badge">Apps launched by <strong>Demo README</strong> · gnome-terminal + firefox</div>
+    </div>
+    <div id="cursor"></div>
+  </body>
+</html>

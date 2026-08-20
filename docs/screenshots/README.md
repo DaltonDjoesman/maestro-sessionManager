@@ -10,10 +10,11 @@ Live UI captures of Maestro (React shell at 1440×900, dark theme, pt-PT). Regen
 | `capture.png` | Current | Assistente de captura (workspaces) |
 | `activation-overlay.png` | Current | Terminal results after **Ativar** |
 | `settings.png` | Current | Definições (Geral / Sessões / Avançado) |
-| `maestro-activate-demo.mp4` | Current | README demo loop (H.264) |
-| `maestro-activate-demo.webm` | Current | README demo loop (VP9 fallback) |
+| `maestro-activate-demo.gif` | Current | README demo loop (GitHub-embeddable) |
+| `maestro-activate-demo.mp4` | Current | Demo source / HD fallback (H.264) |
+| `maestro-activate-demo.webm` | Current | Demo source / HD fallback (VP9) |
 
-PNG shots = **app window** only. Demo video = activation flow with a visible cursor, then a privacy-safe **full-screen desktop stage** (terminal + Firefox / example.com) showing what the session launched.
+PNG shots = **app window** only. Demo GIF = activation flow with a visible cursor, then a privacy-safe **full-screen desktop stage** (terminal + Firefox / example.com) showing what the session launched.
 
 ## Regenerate screenshots
 
@@ -40,6 +41,16 @@ That script:
 1. Records hub → **Ativar** on **Demo README** → activation overlay (with a drawn cursor).
 2. Appends frames from [`scripts/demo-desktop-stage.html`](../../scripts/demo-desktop-stage.html) (Cosmic-like chrome + terminal + Firefox).
 3. Runs [`scripts/optimize-demo-video.sh`](../../scripts/optimize-demo-video.sh) → `maestro-activate-demo.{mp4,webm}`.
+
+### Regenerate demo GIF (from MP4)
+
+After MP4 exists:
+
+```bash
+FFMPEG=.tools/ffmpeg ./scripts/optimize-demo-gif.sh
+```
+
+Or manually with any `ffmpeg` on `PATH` (palette two-pass, 12 fps, 1280px wide).
 
 Demo profile JSON for a **live** activation: [`docs/examples/demo-recording.profile.json`](../examples/demo-recording.profile.json).
 

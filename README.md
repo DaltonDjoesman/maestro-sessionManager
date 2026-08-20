@@ -43,13 +43,10 @@ Clearing the sidebar “última activação” label only resets UI state — la
 
 ## Demo
 
-<video autoplay loop muted playsinline controls width="100%" poster="docs/screenshots/hub.png">
-  <source src="docs/screenshots/maestro-activate-demo.webm" type="video/webm">
-  <source src="docs/screenshots/maestro-activate-demo.mp4" type="video/mp4">
-</video>
+![Select a session, activate, and launch apps on the desktop](docs/screenshots/maestro-activate-demo.gif)
 
 *Select a session → **Ativar** → results overlay → apps and URLs on the desktop (Pop!_OS).*  
-If the player does not embed in your viewer, open [maestro-activate-demo.mp4](docs/screenshots/maestro-activate-demo.mp4) / [maestro-activate-demo.webm](docs/screenshots/maestro-activate-demo.webm).
+Higher quality: [MP4](docs/screenshots/maestro-activate-demo.mp4) / [WebM](docs/screenshots/maestro-activate-demo.webm).
 
 ## Screenshots
 

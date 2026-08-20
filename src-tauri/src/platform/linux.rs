@@ -295,20 +295,49 @@ mod tests {
 
     #[test]
     fn resolve_launch_executable_finds_cursor_on_path_when_old_install_gone() {
+        let bin_dir = std::env::temp_dir().join(format!(
+            "maestro-resolve-launch-{}-{}",
+            std::process::id(),
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&bin_dir).expect("temp bin dir");
+        let fake_cursor = bin_dir.join("cursor");
+        std::fs::write(&fake_cursor, b"#!/bin/sh\n").expect("write fake cursor");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(&fake_cursor)
+                .expect("stat fake cursor")
+                .permissions();
+            perms.set_mode(0o755);
+            std::fs::set_permissions(&fake_cursor, perms).expect("chmod fake cursor");
+        }
+
+        let previous_path = std::env::var_os("PATH");
+        let mut path = bin_dir.display().to_string();
+        if let Some(rest) = previous_path.as_ref() {
+            path.push(':');
+            path.push_str(&rest.to_string_lossy());
+        }
+        std::env::set_var("PATH", &path);
+
         let gone = "/home/u/.local/share/cursor-editor/usr/share/cursor/cursor (deleted)";
         let resolved = resolve_launch_executable(gone);
-        assert!(
-            Path::new(&resolved).is_file(),
+
+        match previous_path {
+            Some(p) => std::env::set_var("PATH", p),
+            None => std::env::remove_var("PATH"),
+        }
+        let _ = std::fs::remove_dir_all(&bin_dir);
+
+        assert_eq!(
+            Path::new(&resolved),
+            fake_cursor.as_path(),
             "expected PATH fallback for cursor, got {resolved}"
         );
         assert!(
             !resolved.contains("(deleted)"),
             "must not keep deleted marker: {resolved}"
         );
-        let base = Path::new(&resolved)
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or("");
-        assert_eq!(base, "cursor");
     }
 }

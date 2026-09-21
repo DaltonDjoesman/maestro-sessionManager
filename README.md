@@ -1,29 +1,31 @@
 # Maestro
 
+<p align="center">
+  <img src="docs/banner.svg" alt="Maestro — Linux work sessions, launched from a local profile." width="100%">
+</p>
+
 [![CI](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml/badge.svg)](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml)
 
 **Linux session launcher** — describe a work session as JSON (apps + browser URLs), capture what’s already open, and activate it in one click.
 
-Maestro is a **personal portfolio project** (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
+Desktop app (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
 
 **Download:** [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) — Linux `.deb` / AppImage (v0.1.0+). To build from source, see [Quick start](#quick-start).
 
-## About
-
-Built by [DaltonDjoesman](https://github.com/DaltonDjoesman) as a personal portfolio project. Highlights:
+## Highlights
 
 - End-to-end desktop app: React UI → Tauri IPC → Rust services
 - Session activation pipeline (spawn, preview/dry-run, step timeline)
 - Linux capture assistant (process/window discovery, compositor-aware adapters)
 - CI (`cargo test`, Vitest, `npm run build`)
 
-## Reading guide
+## Start here
 
-| Audience | Start here |
-|----------|------------|
-| **Recruiter / quick scan** | [Demo](#demo), [Screenshots](#screenshots), [Problem](#problem) |
-| **Developer** | [docs/architecture.md](docs/architecture.md), [docs/linux-desktop.md](docs/linux-desktop.md) |
-| **Try it** | [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) or [Quick start](#quick-start) |
+| If you want to | Go to |
+|----------------|--------|
+| See the product | [Demo](#demo) · [Screenshots](#screenshots) · [Problem](#problem) |
+| Run it | [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) · [Quick start](#quick-start) |
+| Read the design | [Architecture](docs/architecture.md) · [Linux desktop](docs/linux-desktop.md) |
 
 ## Problem
 
@@ -143,5 +145,4 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 | [docs/follow-up-craft.md](docs/follow-up-craft.md) | Deferred craft (CLI, hotkeys, templates) |
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |
-| [docs/backend-workflow.md](docs/backend-workflow.md) | Agent-oriented backend workflow |
 | [design/](design/) | UI prototype / handoff assets |

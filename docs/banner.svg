@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">Maestro</title>
+  <desc id="desc">Linux work sessions, launched from a local profile. Tauri, React, and Rust.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070b14"/>
+      <stop offset="1" stop-color="#101828"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="360" fill="url(#bg)"/>
+  <rect width="8" height="360" fill="#3b82f6"/>
+  <g opacity="0.9" fill="none" stroke="#1e3a5f" stroke-width="1.5">
+    <rect x="860" y="78" width="300" height="64" rx="10"/>
+    <rect x="860" y="154" width="300" height="64" rx="10"/>
+    <rect x="860" y="230" width="300" height="64" rx="10"/>
+  </g>
+  <g font-family="Segoe UI, Ubuntu, sans-serif">
+    <text x="72" y="118" fill="#93c5fd" font-size="16" letter-spacing="3">DESKTOP / LINUX</text>
+    <text x="72" y="188" fill="#f8fafc" font-size="64" font-weight="700">Maestro</text>
+    <text x="72" y="236" fill="#94a3b8" font-size="22">Linux work sessions, launched from a local profile.</text>
+  </g>
+  <g font-family="Segoe UI, Ubuntu, sans-serif" font-size="15" fill="#dbeafe">
+    <rect x="72" y="272" width="78" height="32" rx="16" fill="#172554"/>
+    <text x="111" y="293" text-anchor="middle">Tauri</text>
+    <rect x="162" y="272" width="82" height="32" rx="16" fill="#172554"/>
+    <text x="203" y="293" text-anchor="middle">React</text>
+    <rect x="256" y="272" width="70" height="32" rx="16" fill="#172554"/>
+    <text x="291" y="293" text-anchor="middle">Rust</text>
+  </g>
+</svg>

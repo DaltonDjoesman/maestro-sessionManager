@@ -1,7 +1,5 @@
 # Backend & agent workflow (Maestro)
 
-This document supports the OpenSpec capability **backend-dev-workflow** (canonical spec: [`openspec/specs/backend-dev-workflow/spec.md`](../openspec/specs/backend-dev-workflow/spec.md)).
-
 For a human-readable system overview (layers, IPC map, key flows), see [`docs/architecture.md`](./architecture.md).
 
 ## Scope
@@ -31,9 +29,4 @@ Run these **before** stating that backend work is complete (narrow filters when 
 
 ## Git commits
 
-Prefer **small commits** with clear messages (e.g. `feat(maestro): …`, `fix(src-tauri): …`) after each finished OpenSpec sub-task or logical unit—not one huge commit at the end of a section.
-
-## Related OpenSpec
-
-- **Normative spec:** [`openspec/specs/backend-dev-workflow/spec.md`](../openspec/specs/backend-dev-workflow/spec.md)
-- **Archived change** (proposal, design, tasks): `openspec/changes/archive/2026-05-21-backend-superpowers-workflow/`
+Prefer **small commits** with clear messages (e.g. `feat(maestro): …`, `fix(src-tauri): …`) after each finished logical unit—not one huge commit at the end of a section.

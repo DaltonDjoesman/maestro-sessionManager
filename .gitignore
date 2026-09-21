@@ -16,6 +16,7 @@ migrate_working_dir/
 .agents/
 .metadata
 skills-lock.json
+openspec/
 
 # Local tooling (static ffmpeg, etc.)
 .tools/

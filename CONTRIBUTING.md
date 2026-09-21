@@ -6,7 +6,7 @@ Maestro is a **personal portfolio project**, not a commercial product or large c
 
 1. **Issues** — Bug reports and focused feature ideas are fine. Include OS/desktop (e.g. Pop!_OS + Cosmic), steps to reproduce, and whether you used `tauri dev` or a release build.
 2. **Pull requests** — Prefer narrow fixes (docs, copy, tests, small UI polish). Open an issue first for larger behavior changes.
-3. **Scope** — Do not add session teardown/process kill, window placement, or cloud accounts unless discussed and specified via OpenSpec.
+3. **Scope** — Do not add session teardown/process kill, window placement, or cloud accounts unless discussed first.
 
 ## Local checks
 

@@ -15,14 +15,14 @@ Built by [DaltonDjoesman](https://github.com/DaltonDjoesman) as a personal portf
 - End-to-end desktop app: React UI → Tauri IPC → Rust services
 - Session activation pipeline (spawn, preview/dry-run, step timeline)
 - Linux capture assistant (process/window discovery, compositor-aware adapters)
-- Spec-driven workflow (OpenSpec) + CI (`cargo test`, Vitest, `npm run build`)
+- CI (`cargo test`, Vitest, `npm run build`)
 
 ## Reading guide
 
 | Audience | Start here |
 |----------|------------|
 | **Recruiter / quick scan** | [Demo](#demo), [Screenshots](#screenshots), [Problem](#problem) |
-| **Developer** | [docs/architecture.md](docs/architecture.md), [docs/linux-desktop.md](docs/linux-desktop.md), [openspec/specs/](openspec/specs/) |
+| **Developer** | [docs/architecture.md](docs/architecture.md), [docs/linux-desktop.md](docs/linux-desktop.md) |
 | **Try it** | [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) or [Quick start](#quick-start) |
 
 ## Problem
@@ -67,7 +67,6 @@ Notes, demo video checklist, and regenerate scripts: [`docs/screenshots/`](docs/
 - **Tauri 2** desktop shell
 - **React 19** + Vite UI — default locale **pt-PT**. An `en` locale module exists as an **i18n scaffold only** (stub / alias); there is no locale switcher and no shipped English UI yet.
 - **Rust** core: profiles, settings, activation, capture, platform adapters
-- **OpenSpec** for capability specs and change workflow (`.cursor/commands/`, `openspec/`)
 
 ## Quick start
 
@@ -145,7 +144,4 @@ This is a personal portfolio repo. Small fixes and issues are welcome — see [C
 | [docs/packaging.md](docs/packaging.md) | Packaging notes |
 | [docs/linux-desktop.md](docs/linux-desktop.md) | Desktop / compositor notes |
 | [docs/backend-workflow.md](docs/backend-workflow.md) | Agent-oriented backend workflow |
-| [openspec/specs/](openspec/specs/) | Normative product capabilities |
 | [design/](design/) | UI prototype / handoff assets |
-
-OpenSpec apply/explore commands live under `.cursor/commands/` (`opsx-apply`, etc.).

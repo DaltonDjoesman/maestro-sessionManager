@@ -1,14 +1,12 @@
 <p align="center">
-  <img src="docs/banner.svg" alt="" width="100%">
+  <img src="docs/banner.svg" alt="Maestro" width="100%">
 </p>
 
-# Maestro
-
-Linux work sessions, launched from a local profile.
+Describe a work session as JSON (apps and browser URLs), capture what’s already open, and activate it in one click.
 
 [![CI](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml/badge.svg)](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml)
 
-Describe a work session as JSON (apps + browser URLs), capture what’s already open, and activate it in one click. Desktop app (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
+Desktop app (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
 
 **Download:** [Releases](https://github.com/DaltonDjoesman/maestro-sessionManager/releases) — Linux `.deb` / AppImage (v0.1.0+). To build from source, see [Quick start](#quick-start).
 

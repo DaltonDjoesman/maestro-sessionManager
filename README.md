@@ -4,6 +4,8 @@
 
 Describe a work session as JSON (apps and browser URLs), capture what’s already open, and activate it in one click.
 
+**Portfolio:** [daltondjoesman.github.io](https://daltondjoesman.github.io)
+
 [![CI](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml/badge.svg)](https://github.com/DaltonDjoesman/maestro-sessionManager/actions/workflows/ci.yml)
 
 Desktop app (Tauri 2 + React + Rust). It launches processes from profiles; it is **not** a window manager and does **not** tear down or kill apps you launched.
